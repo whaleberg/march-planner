@@ -35,7 +35,7 @@ export const geocodeAddress = async (address: string): Promise<MapCoordinates | 
     const google = await initializeGoogleMaps();
     const geocoder = new google.maps.Geocoder();
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const location = results[0].geometry.location;
@@ -63,7 +63,7 @@ export const geocodeAddressMultiple = async (address: string): Promise<Array<{
     const google = await initializeGoogleMaps();
     const geocoder = new google.maps.Geocoder();
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results.length > 0) {
           const locations = results.slice(0, 5).map(result => ({
@@ -109,7 +109,7 @@ export const calculateRoute = async (
       stopover: true
     }));
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       directionsService.route(
         {
           origin: new google.maps.LatLng(origin.coordinates.lat, origin.coordinates.lng),
@@ -265,7 +265,7 @@ export const fitMapToBounds = (
   map.fitBounds(bounds);
   
   // Add some padding
-  const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+  google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
     const currentZoom = map.getZoom();
     if (currentZoom && currentZoom > 15) {
       map.setZoom(15);

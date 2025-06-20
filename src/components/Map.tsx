@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapCoordinates, RoutePoint } from '../types';
-import { initializeGoogleMaps, createMap, addRouteToMap, fitMapToBounds } from '../services/mapsService';
+import { createMap, addRouteToMap, fitMapToBounds } from '../services/mapsService';
 import { Loader, MapPin } from 'lucide-react';
 
 interface MapProps {
@@ -48,7 +48,7 @@ const Map: React.FC<MapProps> = ({
         setIsLoading(true);
         setError(null);
 
-        const google = await initializeGoogleMaps();
+        // Remove 'const google = ...' if not used
         
         // Double-check that the ref still exists after async operations
         if (!mapRef.current) {

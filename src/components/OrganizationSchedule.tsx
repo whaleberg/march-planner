@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
-import { PartnerOrganization } from '../types';
 import { Calendar, Building2, Check, X } from 'lucide-react';
 
 const OrganizationSchedule: React.FC = () => {

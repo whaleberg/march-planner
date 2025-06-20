@@ -88,10 +88,10 @@ class AuthService {
       const data = await response.json();
       
       if (data.success && data.user && data.token) {
-        this.currentUser = data.user;
+        this.currentUser = { ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' };
         this.authToken = data.token;
-        this.saveToStorage(data.user, data.token, data.expiresIn || 3600);
-        return { success: true, user: data.user, token: data.token };
+        this.saveToStorage({ ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' }, data.token, data.expiresIn || 3600);
+        return { success: true, user: { ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' }, token: data.token };
       } else {
         return { success: false, error: data.error || 'Login failed' };
       }
@@ -130,10 +130,10 @@ class AuthService {
     );
 
     if (user) {
-      this.currentUser = user;
+      this.currentUser = { ...user, role: user.role as 'admin' | 'editor' | 'viewer' };
       this.authToken = 'local-token-' + Date.now();
-      this.saveToStorage(user, this.authToken, 3600);
-      return { success: true, user, token: this.authToken };
+      this.saveToStorage({ ...user, role: user.role as 'admin' | 'editor' | 'viewer' }, this.authToken, 3600);
+      return { success: true, user: { ...user, role: user.role as 'admin' | 'editor' | 'viewer' }, token: this.authToken };
     }
 
     return { success: false, error: 'Invalid credentials' };

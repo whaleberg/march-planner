@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Settings, Download, Upload, RotateCcw, Edit, Save, X, Stethoscope, Shield } from 'lucide-react';
+import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Edit, Save, X, Stethoscope, Shield } from 'lucide-react';
 import Map from './Map';
 import { RoutePoint, MarchDay } from '../types';
 import { getRoutePointName } from '../utils/routeUtils';
@@ -10,7 +10,6 @@ import { getRoutePointName } from '../utils/routeUtils';
 const Overview: React.FC = () => {
   const { marchData, isLoading, getTotalDistance, getDayDistance, getDayWalkingTime, getDayNumber, updateMarchData } = useMarchData();
   const { canEdit } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const dayRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(null);
@@ -318,7 +317,7 @@ const Overview: React.FC = () => {
   }
 
   // Polyline interaction handlers
-  const handlePolylineHover = (startPoint: RoutePoint, endPoint: RoutePoint, dayIndex: number) => {
+  const handlePolylineHover = (_startPoint: RoutePoint, _endPoint: RoutePoint, dayIndex: number) => {
     setHoveredDayIndex(dayIndex);
   };
 

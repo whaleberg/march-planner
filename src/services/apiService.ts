@@ -178,14 +178,13 @@ class ApiService {
     // Return sample data if nothing is stored or invalid
     return {
       title: "Community Unity March",
-      description: "A 3-day march to promote community solidarity and social justice awareness.",
-      startDate: "2024-06-15",
-      endDate: "2024-06-17",
-      mapSettings: {
-        googleMapsApiKey: (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '',
-        defaultZoom: 10,
-        mapCenter: { lat: 42.3601, lng: -71.0589 }
-      },
+      description: "A march for unity.",
+      startDate: "2024-01-01",
+      endDate: "2024-01-02",
+      missionStatement: { title: '', subtitle: '', description: '' },
+      callToAction: { title: '', description: '' },
+      itineraryDescription: '',
+      mapSettings: { googleMapsApiKey: '', defaultZoom: 10, mapCenter: { lat: 0, lng: 0 } },
       days: [],
       marchers: [],
       partnerOrganizations: []

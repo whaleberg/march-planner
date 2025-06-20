@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
-import { Marcher } from '../types';
 import { Calendar, Users, Check, X, Stethoscope, Shield } from 'lucide-react';
 
 const MarcherSchedule: React.FC = () => {

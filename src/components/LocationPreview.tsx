@@ -83,7 +83,7 @@ const LocationPreview: React.FC<LocationPreviewProps> = ({
       
       {!isLoading && !error && locations.length > 0 && (
         <div className="divide-y divide-gray-200">
-          {locations.map((location, index) => (
+          {locations.map((location) => (
             <button
               key={location.placeId}
               onClick={() => onLocationSelect(location.coordinates, location.formattedAddress)}

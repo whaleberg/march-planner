@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, Clock, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
+import { MapPin, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
 import { MarchDay, Meal, SpecialEvent } from '../types';
 import RouteEditor from './RouteEditor';
 
@@ -72,11 +72,6 @@ const DayDetail: React.FC = () => {
   const getMarchLeader = () => {
     if (!day?.marchLeaderId) return null;
     return marchData.marchers.find(m => m.id === day.marchLeaderId);
-  };
-
-  // Helper function to get available marchers for march leader selection
-  const getAvailableMarchLeaders = () => {
-    return dayMarchers.filter(m => m.id !== day?.marchLeaderId);
   };
 
   // Keyboard navigation

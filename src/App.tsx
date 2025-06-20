@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { MarchProvider } from './context/MarchContext';
 import { AuthProvider } from './context/AuthContext';
 import Navigation from './components/Navigation';
@@ -18,69 +18,66 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <MarchProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <main>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Overview />} />
-                <Route path="/day/:dayId" element={<DayDetail />} />
-                <Route path="/login" element={<Login />} />
-                
-                {/* Protected Routes - Require Editor Access */}
-                <Route 
-                  path="/marchers" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <MarchersPage />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/organizations" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <OrganizationsPage />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/marcher-schedule" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <MarcherSchedule />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/org-schedule" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <OrganizationSchedule />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/day-management" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <DayManagement />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/data-management" 
-                  element={
-                    <ProtectedRoute requireEditor={true}>
-                      <DataManagement />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Routes>
-            </main>
-          </div>
-        </Router>
+        <div className="min-h-screen bg-gray-50">
+          <Navigation />
+          <main>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Overview />} />
+              <Route path="/day/:dayId" element={<DayDetail />} />
+              <Route path="/login" element={<Login />} />
+              {/* Protected Routes - Require Editor Access */}
+              <Route 
+                path="/marchers" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <MarchersPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/organizations" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <OrganizationsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/marcher-schedule" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <MarcherSchedule />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/org-schedule" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <OrganizationSchedule />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/day-management" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <DayManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/data-management" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <DataManagement />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </main>
+        </div>
       </MarchProvider>
     </AuthProvider>
   );

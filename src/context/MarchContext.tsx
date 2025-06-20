@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { MarchData, MarchDay, Marcher, PartnerOrganization } from '../types';
 import { sampleMarchData } from '../data/sampleData';
 import { apiService } from '../services/apiService';

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
-import { MarchDay, DayRoute, Meal, SpecialEvent } from '../types';
-import { Calendar, MapPin, Clock, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye, Stethoscope, Shield, User, Crown } from 'lucide-react';
+import { MarchDay } from '../types';
+import { Calendar, MapPin, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye, Stethoscope, Shield, User, Crown } from 'lucide-react';
 import { getRoutePointName } from '../utils/routeUtils';
 
 const DayManagement: React.FC = () => {
@@ -231,9 +231,9 @@ const DayManagement: React.FC = () => {
                 ) : (
                   <>
                     <option value={0}>At the beginning (before Day 1)</option>
-                    {marchData.days.map((day, index) => (
-                      <option key={day.id} value={index + 1}>
-                        After Day {index + 1} - {getRoutePointName(day, 'start')} → {getRoutePointName(day, 'end')}
+                    {marchData.days.map((day) => (
+                      <option key={day.id} value={day.id}>
+                        After Day {day.id} - {getRoutePointName(day, 'start')} → {getRoutePointName(day, 'end')}
                       </option>
                     ))}
                   </>
@@ -397,7 +397,7 @@ const DayManagement: React.FC = () => {
 
       {/* Days List */}
       <div className="space-y-4">
-        {marchData.days.map((day, index) => {
+        {marchData.days.map((day) => {
           const isEditing = editingId === day.id;
           const currentDay = isEditing ? editedDay! : day;
           const dayNumber = getDayNumber(day.id);

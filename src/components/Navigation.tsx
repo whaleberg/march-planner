@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { user, isAuthenticated, logout, canEdit } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Navigation items - some are only visible to authenticated users
   const publicNavItems = [
