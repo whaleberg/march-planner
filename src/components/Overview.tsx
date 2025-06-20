@@ -2,13 +2,13 @@ import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Settings, Download, Upload, RotateCcw } from 'lucide-react';
+import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Settings, Download, Upload, RotateCcw, Edit, Save, X } from 'lucide-react';
 import Map from './Map';
 import { RoutePoint, MarchDay } from '../types';
 import { getRoutePointName } from '../utils/routeUtils';
 
 const Overview: React.FC = () => {
-  const { marchData, isLoading, getTotalDistance, getDayDistance, getDayWalkingTime, getDayNumber } = useMarchData();
+  const { marchData, isLoading, getTotalDistance, getDayDistance, getDayWalkingTime, getDayNumber, updateMarchData } = useMarchData();
   const { canEdit } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +19,101 @@ const Overview: React.FC = () => {
     endPoint: RoutePoint;
     dayIndex: number;
   } | null>(null);
+  
+  // Editing state
+  const [isEditingMission, setIsEditingMission] = useState(false);
+  const [isEditingCallToAction, setIsEditingCallToAction] = useState(false);
+  const [isEditingHero, setIsEditingHero] = useState(false);
+  const [isEditingItinerary, setIsEditingItinerary] = useState(false);
+  const [editedData, setEditedData] = useState(marchData);
+
+  // Update edited data when marchData changes
+  useEffect(() => {
+    setEditedData(marchData);
+  }, [marchData]);
+
+  const handleEditMission = () => {
+    setIsEditingMission(true);
+    setEditedData(marchData);
+  };
+
+  const handleEditCallToAction = () => {
+    setIsEditingCallToAction(true);
+    setEditedData(marchData);
+  };
+
+  const handleEditHero = () => {
+    setIsEditingHero(true);
+    setEditedData(marchData);
+  };
+
+  const handleEditItinerary = () => {
+    setIsEditingItinerary(true);
+    setEditedData(marchData);
+  };
+
+  const handleSave = () => {
+    updateMarchData(editedData);
+    setIsEditingMission(false);
+    setIsEditingCallToAction(false);
+    setIsEditingHero(false);
+    setIsEditingItinerary(false);
+  };
+
+  const handleCancel = () => {
+    setEditedData(marchData);
+    setIsEditingMission(false);
+    setIsEditingCallToAction(false);
+    setIsEditingHero(false);
+    setIsEditingItinerary(false);
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleMissionStatementChange = (field: string, value: string) => {
+    setEditedData(prev => ({
+      ...prev,
+      missionStatement: {
+        ...prev.missionStatement,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleCallToActionChange = (field: string, value: string) => {
+    setEditedData(prev => ({
+      ...prev,
+      callToAction: {
+        ...prev.callToAction,
+        [field]: value
+      }
+    }));
+  };
+
+  // Helper functions to safely access flavor text fields with fallbacks
+  const getMissionStatement = () => {
+    return marchData.missionStatement || {
+      title: "More than a march—a people's movement",
+      subtitle: "Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy.",
+      description: "Every step counts, every voice matters."
+    };
+  };
+
+  const getCallToAction = () => {
+    return marchData.callToAction || {
+      title: "Join the Movement",
+      description: "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference."
+    };
+  };
+
+  const getItineraryDescription = () => {
+    return marchData.itineraryDescription || "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.";
+  };
 
   // Helper function to safely format dates
   const formatDate = (dateString: string | undefined, options: Intl.DateTimeFormatOptions = {}) => {
@@ -226,13 +321,66 @@ const Overview: React.FC = () => {
           <div className="bg-gradient-to-r from-red-600 to-blue-600 p-3 rounded-full">
             <Flag className="h-12 w-12 text-white" />
           </div>
+          {canEdit() && (
+            <div className="ml-4 flex space-x-2">
+              {isEditingHero ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="text-green-600 hover:text-green-800 p-1"
+                    title="Save Changes"
+                  >
+                    <Save className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="text-gray-600 hover:text-gray-800 p-1"
+                    title="Cancel Edit"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEditHero}
+                  className="text-blue-600 hover:text-blue-800 p-1"
+                  title="Edit Content"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        <h1 className="text-5xl font-bold text-gray-900 mb-4 patriotic-accent">
-          {marchData.title}
-        </h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-          {marchData.description}
-        </p>
+        
+        {isEditingHero ? (
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={editedData.title}
+              onChange={(e) => handleFieldChange('title', e.target.value)}
+              className="text-5xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-3xl"
+              placeholder="March title"
+            />
+            <textarea
+              value={editedData.description}
+              onChange={(e) => handleFieldChange('description', e.target.value)}
+              className="text-xl text-gray-600 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-3xl resize-none"
+              rows={3}
+              placeholder="March description"
+            />
+          </div>
+        ) : (
+          <>
+            <h1 className="text-5xl font-bold text-gray-900 mb-4 patriotic-accent">
+              {marchData.title}
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              {marchData.description}
+            </p>
+          </>
+        )}
+        
         <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
           <span className="flex items-center">
             <Calendar className="h-4 w-4 mr-1" />
@@ -248,12 +396,75 @@ const Overview: React.FC = () => {
       {/* Mission Statement */}
       <div className="bg-gradient-to-r from-red-50 to-blue-50 rounded-2xl p-8 mb-12 border border-red-100">
         <div className="text-center">
-          <Heart className="h-8 w-8 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">More than a march—a people's movement</h2>
-          <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-            Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy. 
-            Every step counts, every voice matters.
-          </p>
+          <div className="flex justify-center items-center mb-4">
+            <Heart className="h-8 w-8 text-red-600" />
+            {canEdit() && (
+              <div className="ml-4 flex space-x-2">
+                {isEditingMission ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      className="text-green-600 hover:text-green-800 p-1"
+                      title="Save Changes"
+                    >
+                      <Save className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="Cancel Edit"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleEditMission}
+                    className="text-blue-600 hover:text-blue-800 p-1"
+                    title="Edit Content"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {isEditingMission ? (
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={editedData.missionStatement?.title || getMissionStatement().title}
+                onChange={(e) => handleMissionStatementChange('title', e.target.value)}
+                className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl"
+                placeholder="Mission statement title"
+              />
+              <textarea
+                value={editedData.missionStatement?.subtitle || getMissionStatement().subtitle}
+                onChange={(e) => handleMissionStatementChange('subtitle', e.target.value)}
+                className="text-lg text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
+                rows={2}
+                placeholder="Mission statement subtitle"
+              />
+              <textarea
+                value={editedData.missionStatement?.description || getMissionStatement().description}
+                onChange={(e) => handleMissionStatementChange('description', e.target.value)}
+                className="text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
+                rows={3}
+                placeholder="Mission statement description"
+              />
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{getMissionStatement().title}</h2>
+              <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-4">
+                {getMissionStatement().subtitle}
+              </p>
+              <p className="text-gray-700 max-w-2xl mx-auto">
+                {getMissionStatement().description}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -306,6 +517,71 @@ const Overview: React.FC = () => {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-8 mb-12 border border-blue-100">
+        <div className="text-center">
+          <div className="flex justify-center items-center mb-4">
+            <Users className="h-8 w-8 text-blue-600" />
+            {canEdit() && (
+              <div className="ml-4 flex space-x-2">
+                {isEditingCallToAction ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      className="text-green-600 hover:text-green-800 p-1"
+                      title="Save Changes"
+                    >
+                      <Save className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="Cancel Edit"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleEditCallToAction}
+                    className="text-blue-600 hover:text-blue-800 p-1"
+                    title="Edit Content"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {isEditingCallToAction ? (
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={editedData.callToAction?.title || getCallToAction().title}
+                onChange={(e) => handleCallToActionChange('title', e.target.value)}
+                className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl"
+                placeholder="Call to action title"
+              />
+              <textarea
+                value={editedData.callToAction?.description || getCallToAction().description}
+                onChange={(e) => handleCallToActionChange('description', e.target.value)}
+                className="text-lg text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
+                rows={3}
+                placeholder="Call to action description"
+              />
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{getCallToAction().title}</h2>
+              <p className="text-lg text-gray-700 max-w-2xl mx-auto">
+                {getCallToAction().description}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -370,11 +646,54 @@ const Overview: React.FC = () => {
       {/* Itinerary */}
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <MapPin className="h-6 w-6 mr-3 text-red-600" />
-            March Itinerary
-          </h2>
-          <p className="text-gray-600 mt-2">Join us for an hour, a day, a week, or the whole way</p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <MapPin className="h-6 w-6 mr-3 text-red-600" />
+              March Itinerary
+            </h2>
+            {canEdit() && (
+              <div className="flex space-x-2">
+                {isEditingItinerary ? (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      className="text-green-600 hover:text-green-800 p-1"
+                      title="Save Changes"
+                    >
+                      <Save className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="Cancel Edit"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleEditItinerary}
+                    className="text-blue-600 hover:text-blue-800 p-1"
+                    title="Edit Content"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {isEditingItinerary ? (
+            <textarea
+              value={editedData.itineraryDescription || getItineraryDescription()}
+              onChange={(e) => handleFieldChange('itineraryDescription', e.target.value)}
+              className="text-gray-600 bg-white border border-gray-300 rounded px-3 py-2 w-full mt-2 resize-none"
+              rows={2}
+              placeholder="Itinerary description"
+            />
+          ) : (
+            <p className="text-gray-600 mt-2">{getItineraryDescription()}</p>
+          )}
         </div>
         <div className="divide-y divide-gray-200">
           {marchData.days.map((day, index) => {

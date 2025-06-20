@@ -79,6 +79,17 @@ export interface MarchData {
   description: string;
   startDate: string;
   endDate: string;
+  // Editable flavor text fields
+  missionStatement: {
+    title: string;
+    subtitle: string;
+    description: string;
+  };
+  callToAction: {
+    title: string;
+    description: string;
+  };
+  itineraryDescription: string;
   days: MarchDay[];
   marchers: Marcher[];
   partnerOrganizations: PartnerOrganization[];

@@ -39,15 +39,14 @@ interface MarchContextType {
 
 const MarchContext = createContext<MarchContextType | undefined>(undefined);
 
-function useMarchData() {
+// Export the hook as a named export for better Fast Refresh compatibility
+export function useMarchData() {
   const context = useContext(MarchContext);
   if (context === undefined) {
     throw new Error('useMarchData must be used within a MarchProvider');
   }
   return context;
 }
-
-export { useMarchData };
 
 interface MarchProviderProps {
   children: ReactNode;
@@ -66,8 +65,28 @@ const updateDatesFromStartDate = (days: MarchDay[], startDate: string): MarchDay
   });
 };
 
+// Helper function to migrate data to include new flavor text fields
+const migrateData = (data: any): MarchData => {
+  // Ensure the data has the new flavor text fields
+  const migratedData = {
+    ...data,
+    missionStatement: data.missionStatement || {
+      title: "More than a march—a people's movement",
+      subtitle: "Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy.",
+      description: "Every step counts, every voice matters. This march represents our collective commitment to building stronger, more inclusive communities across Massachusetts."
+    },
+    callToAction: data.callToAction || {
+      title: "Join the Movement",
+      description: "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference. Together, we can create lasting change."
+    },
+    itineraryDescription: data.itineraryDescription || "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard."
+  };
+  
+  return migratedData as MarchData;
+};
+
 export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
-  const [marchData, setMarchData] = useState<MarchData>(sampleMarchData);
+  const [marchData, setMarchData] = useState<MarchData>(migrateData(sampleMarchData));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -81,11 +100,13 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
       
       try {
         const data = await apiService.loadMarchData();
-        setMarchData(data);
+        const migratedData = migrateData(data);
+        setMarchData(migratedData);
         setError(null);
       } catch (error) {
         console.warn('Failed to load data, using sample data:', error);
-        setMarchData(sampleMarchData);
+        const migratedSampleData = migrateData(sampleMarchData);
+        setMarchData(migratedSampleData);
         setError(error instanceof Error ? error.message : 'Failed to load data');
       }
       

@@ -5,6 +5,16 @@ export const sampleMarchData: MarchData = {
   description: "A 3-day march across eastern Massachusetts to promote community solidarity and social justice awareness.",
   startDate: "2024-06-15",
   endDate: "2024-06-17",
+  missionStatement: {
+    title: "More than a march—a people's movement",
+    subtitle: "Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy.",
+    description: "Every step counts, every voice matters. This march represents our collective commitment to building stronger, more inclusive communities across Massachusetts."
+  },
+  callToAction: {
+    title: "Join the Movement",
+    description: "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference. Together, we can create lasting change."
+  },
+  itineraryDescription: "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.",
   mapSettings: {
     googleMapsApiKey: (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '',
     defaultZoom: 10,
