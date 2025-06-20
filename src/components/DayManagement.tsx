@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { MarchDay, DayRoute, Meal, SpecialEvent } from '../types';
-import { Calendar, MapPin, Clock, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye } from 'lucide-react';
+import { Calendar, MapPin, Clock, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye, Stethoscope, Shield, User, Crown } from 'lucide-react';
 import { getRoutePointName } from '../utils/routeUtils';
 
 const DayManagement: React.FC = () => {
@@ -404,6 +404,21 @@ const DayManagement: React.FC = () => {
           const dayMarchers = marchData.marchers.filter(m => m.marchingDays?.includes(day.id));
           const dayPartners = marchData.partnerOrganizations.filter(p => p.partnerDays?.includes(day.id));
 
+          // Helper functions to count medics and peacekeepers for this day
+          const getDayMedicCount = () => {
+            return dayMarchers.filter(m => m.medic).length;
+          };
+
+          const getDayPeacekeeperCount = () => {
+            return dayMarchers.filter(m => m.peacekeeper).length;
+          };
+
+          // Helper function to get the march leader
+          const getMarchLeader = () => {
+            if (!day.marchLeaderId) return null;
+            return marchData.marchers.find(m => m.id === day.marchLeaderId);
+          };
+
           return (
             <div key={day.id} className="card p-6">
               <div className="flex justify-between items-start mb-4">
@@ -506,6 +521,22 @@ const DayManagement: React.FC = () => {
                 </div>
               </div>
 
+              {/* Daily Organizer and March Leader */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {day.dailyOrganizer?.name && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <User className="h-4 w-4 mr-2 text-green-500" />
+                    <span>Organizer: {day.dailyOrganizer.name}</span>
+                  </div>
+                )}
+                {getMarchLeader() && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Crown className="h-4 w-4 mr-2 text-yellow-500" />
+                    <span>Leader: {getMarchLeader()?.name}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Participants Summary */}
               <div className="flex space-x-4 text-xs text-gray-500">
                 <span className="flex items-center">
@@ -516,6 +547,18 @@ const DayManagement: React.FC = () => {
                   <Building2 className="h-3 w-3 mr-1" />
                   {dayPartners.length} partners
                 </span>
+                {getDayMedicCount() > 0 && (
+                  <span className="flex items-center">
+                    <Stethoscope className="h-3 w-3 mr-1 text-red-500" />
+                    {getDayMedicCount()} medic{getDayMedicCount() !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {getDayPeacekeeperCount() > 0 && (
+                  <span className="flex items-center">
+                    <Shield className="h-3 w-3 mr-1 text-blue-500" />
+                    {getDayPeacekeeperCount()} peacekeeper{getDayPeacekeeperCount() !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             </div>
           );

@@ -7,6 +7,8 @@ export interface Marcher {
   dietaryRestrictions?: string;
   notes?: string;
   marchingDays?: string[]; // Array of day IDs when this marcher is participating
+  medic?: boolean; // Indicates if marcher has medic training
+  peacekeeper?: boolean; // Indicates if marcher has peacekeeper training
 }
 
 export interface PartnerOrganization {
@@ -72,6 +74,12 @@ export interface MarchDay {
   specialEvents: SpecialEvent[];
   marchers: string[]; // Array of marcher IDs
   partnerOrganizations: string[]; // Array of partner organization IDs
+  dailyOrganizer?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  marchLeaderId?: string; // ID of the marcher who is the march leader for this day
 }
 
 export interface MarchData {

@@ -27,32 +27,32 @@ export const sampleMarchData: MarchData = {
       route: {
         startPoint: "Boston Common",
         endPoint: "Newton City Hall",
-        terrain: "Urban sidewalks and park paths",
-        notes: "Opening day through historic Boston and into Newton",
+        terrain: "Urban streets and suburban paths",
+        notes: "Starting from Boston Common through Brookline to Newton",
         routePoints: [
           {
             id: "day1-start",
             name: "Boston Common",
-            address: "Boston Common, Boston, MA 02108",
+            address: "139 Tremont St, Boston, MA 02111",
             coordinates: { lat: 42.3554, lng: -71.0655 },
             type: "start",
-            description: "Starting point at historic Boston Common"
+            description: "Starting from Boston Common"
           },
           {
             id: "day1-waypoint1",
-            name: "Fenway Park",
-            address: "4 Jersey St, Boston, MA 02215",
-            coordinates: { lat: 42.3467, lng: -71.0972 },
-            type: "waypoint",
-            description: "Passing by historic Fenway Park"
-          },
-          {
-            id: "day1-waypoint2",
             name: "Brookline Village",
             address: "Brookline Village, Brookline, MA 02445",
             coordinates: { lat: 42.3318, lng: -71.1212 },
             type: "waypoint",
-            description: "Rest stop in Brookline Village"
+            description: "Rest stop at Brookline Village"
+          },
+          {
+            id: "day1-waypoint2",
+            name: "Newton Centre",
+            address: "Newton Centre, Newton, MA 02459",
+            coordinates: { lat: 42.3370, lng: -71.2094 },
+            type: "waypoint",
+            description: "Rest stop at Newton Centre"
           },
           {
             id: "day1-end",
@@ -68,20 +68,23 @@ export const sampleMarchData: MarchData = {
       breakfast: {
         time: "7:00 AM",
         location: "Boston Common",
-        description: "Continental breakfast with coffee and pastries",
-        providedBy: "Local Community Center"
+        description: "Opening breakfast provided by local community groups",
+        providedBy: "Boston Community Organizations",
+        notes: ""
       },
       lunch: {
         time: "12:00 PM",
         location: "Brookline Village",
-        description: "Sandwiches and refreshments at local deli",
-        providedBy: "Brookline Community Foundation"
+        description: "Lunch at Brookline Village",
+        providedBy: "Brookline Community Groups",
+        notes: ""
       },
       dinner: {
         time: "6:00 PM",
         location: "Newton Community Center",
         description: "Community potluck dinner",
-        providedBy: "Newton Community Groups"
+        providedBy: "Newton Community Groups",
+        notes: ""
       },
       specialEvents: [
         {
@@ -94,7 +97,13 @@ export const sampleMarchData: MarchData = {
         }
       ],
       marchers: ["marcher-1", "marcher-2"],
-      partnerOrganizations: ["org-1"]
+      partnerOrganizations: ["org-1"],
+      dailyOrganizer: {
+        name: "Jennifer Martinez",
+        email: "jennifer.martinez@march.org",
+        phone: "(617) 555-0101"
+      },
+      marchLeaderId: "marcher-1"
     },
     {
       id: "day-2",
@@ -169,7 +178,13 @@ export const sampleMarchData: MarchData = {
         }
       ],
       marchers: ["marcher-1", "marcher-3"],
-      partnerOrganizations: ["org-2"]
+      partnerOrganizations: ["org-2"],
+      dailyOrganizer: {
+        name: "Michael Thompson",
+        email: "michael.thompson@march.org",
+        phone: "(617) 555-0102"
+      },
+      marchLeaderId: "marcher-1"
     },
     {
       id: "day-3",
@@ -219,19 +234,22 @@ export const sampleMarchData: MarchData = {
         time: "7:00 AM",
         location: "Framingham State University",
         description: "Final march breakfast",
-        providedBy: "Framingham State University Dining Services"
+        providedBy: "Framingham State University Dining Services",
+        notes: ""
       },
       lunch: {
         time: "12:00 PM",
         location: "Marlborough City Hall",
         description: "Lunch at Marlborough City Hall plaza",
-        providedBy: "Marlborough Community Groups"
+        providedBy: "Marlborough Community Groups",
+        notes: ""
       },
       dinner: {
         time: "6:00 PM",
         location: "Worcester City Hall",
         description: "Victory dinner and celebration",
-        providedBy: "Worcester Community Organizations"
+        providedBy: "Worcester Community Organizations",
+        notes: ""
       },
       specialEvents: [
         {
@@ -244,7 +262,13 @@ export const sampleMarchData: MarchData = {
         }
       ],
       marchers: ["marcher-1", "marcher-2", "marcher-3"],
-      partnerOrganizations: ["org-1", "org-2"]
+      partnerOrganizations: ["org-1", "org-2"],
+      dailyOrganizer: {
+        name: "Sarah Chen",
+        email: "sarah.chen@march.org",
+        phone: "(617) 555-0103"
+      },
+      marchLeaderId: "marcher-2"
     }
   ],
   marchers: [
@@ -255,7 +279,9 @@ export const sampleMarchData: MarchData = {
       phone: "617-555-0101",
       emergencyContact: "David Chen (617-555-0102)",
       dietaryRestrictions: "Vegetarian",
-      notes: "Team leader, experienced marcher"
+      notes: "Team leader, experienced marcher",
+      medic: true,
+      peacekeeper: true
     },
     {
       id: "marcher-2",
@@ -264,7 +290,9 @@ export const sampleMarchData: MarchData = {
       phone: "617-555-0103",
       emergencyContact: "Maria Rodriguez (617-555-0104)",
       dietaryRestrictions: "None",
-      notes: "Community organizer"
+      notes: "Community organizer",
+      medic: false,
+      peacekeeper: true
     },
     {
       id: "marcher-3",
@@ -273,7 +301,9 @@ export const sampleMarchData: MarchData = {
       phone: "617-555-0105",
       emergencyContact: "James Johnson (617-555-0106)",
       dietaryRestrictions: "Gluten-free",
-      notes: "Student activist"
+      notes: "Student activist",
+      medic: true,
+      peacekeeper: false
     }
   ],
   partnerOrganizations: [

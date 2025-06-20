@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, Clock, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
 import { MarchDay, Meal, SpecialEvent } from '../types';
 import RouteEditor from './RouteEditor';
 
@@ -58,6 +58,26 @@ const DayDetail: React.FC = () => {
   const dayPartners = marchData.partnerOrganizations.filter(p => 
     p.partnerDays?.includes(dayId || '')
   );
+
+  // Helper functions to count medics and peacekeepers for this day
+  const getDayMedicCount = () => {
+    return dayMarchers.filter(m => m.medic).length;
+  };
+
+  const getDayPeacekeeperCount = () => {
+    return dayMarchers.filter(m => m.peacekeeper).length;
+  };
+
+  // Helper function to get the march leader marcher
+  const getMarchLeader = () => {
+    if (!day?.marchLeaderId) return null;
+    return marchData.marchers.find(m => m.id === day.marchLeaderId);
+  };
+
+  // Helper function to get available marchers for march leader selection
+  const getAvailableMarchLeaders = () => {
+    return dayMarchers.filter(m => m.id !== day?.marchLeaderId);
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -351,11 +371,154 @@ const DayDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Daily Organizer */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center mb-4">
+              <User className="h-5 w-5 mr-2" />
+              Daily Organizer
+            </h2>
+            {isEditing ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={currentDay.dailyOrganizer?.name || ''}
+                    onChange={(e) => setEditedDay({
+                      ...currentDay,
+                      dailyOrganizer: {
+                        name: e.target.value,
+                        email: currentDay.dailyOrganizer?.email || '',
+                        phone: currentDay.dailyOrganizer?.phone || ''
+                      }
+                    })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="Organizer name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={currentDay.dailyOrganizer?.email || ''}
+                    onChange={(e) => setEditedDay({
+                      ...currentDay,
+                      dailyOrganizer: {
+                        name: currentDay.dailyOrganizer?.name || '',
+                        email: e.target.value,
+                        phone: currentDay.dailyOrganizer?.phone || ''
+                      }
+                    })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="organizer@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    value={currentDay.dailyOrganizer?.phone || ''}
+                    onChange={(e) => setEditedDay({
+                      ...currentDay,
+                      dailyOrganizer: {
+                        name: currentDay.dailyOrganizer?.name || '',
+                        email: currentDay.dailyOrganizer?.email || '',
+                        phone: e.target.value
+                      }
+                    })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                {currentDay.dailyOrganizer?.name ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium text-gray-900">{currentDay.dailyOrganizer.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="text-gray-600">{currentDay.dailyOrganizer.email}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="text-gray-600">{currentDay.dailyOrganizer.phone}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No daily organizer assigned</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* March Leader */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center mb-4">
+              <Crown className="h-5 w-5 mr-2" />
+              March Leader
+            </h2>
+            {isEditing ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select March Leader</label>
+                <select
+                  value={currentDay.marchLeaderId || ''}
+                  onChange={(e) => setEditedDay({
+                    ...currentDay,
+                    marchLeaderId: e.target.value || undefined
+                  })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                >
+                  <option value="">No march leader assigned</option>
+                  {dayMarchers.map((marcher) => (
+                    <option key={marcher.id} value={marcher.id}>
+                      {marcher.name}
+                    </option>
+                  ))}
+                </select>
+                {dayMarchers.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2">No marchers scheduled for this day</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                {getMarchLeader() ? (
+                  <div className="flex items-center">
+                    <Crown className="h-5 w-5 mr-3 text-yellow-600" />
+                    <div>
+                      <span className="font-medium text-gray-900">{getMarchLeader()?.name}</span>
+                      <div className="text-sm text-gray-600">{getMarchLeader()?.email}</div>
+                      {/* Training Badges */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getMarchLeader()?.medic && (
+                          <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            <Stethoscope className="h-3 w-3 mr-1" />
+                            Medic
+                          </div>
+                        )}
+                        {getMarchLeader()?.peacekeeper && (
+                          <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Peacekeeper
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No march leader assigned</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Route Editor */}
           <RouteEditor
             route={currentDay.route}
             onRouteUpdate={handleRouteUpdate}
-            isEditing={isEditing && canEdit()}
             ready={!isLoading && !!day}
           />
 
@@ -616,10 +779,28 @@ const DayDetail: React.FC = () => {
           {/* Marchers */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                Marchers ({dayMarchers.length})
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  Marchers ({dayMarchers.length})
+                </h2>
+                {(getDayMedicCount() > 0 || getDayPeacekeeperCount() > 0) && (
+                  <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                    {getDayMedicCount() > 0 && (
+                      <span className="flex items-center">
+                        <Stethoscope className="h-4 w-4 mr-1 text-red-500" />
+                        {getDayMedicCount()} medic{getDayMedicCount() !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {getDayPeacekeeperCount() > 0 && (
+                      <span className="flex items-center">
+                        <Shield className="h-4 w-4 mr-1 text-blue-500" />
+                        {getDayPeacekeeperCount()} peacekeeper{getDayPeacekeeperCount() !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
               {canEdit() && (
                 <Link 
                   to="/marcher-schedule" 
@@ -639,6 +820,21 @@ const DayDetail: React.FC = () => {
                     <div key={marcher.id} className="border-l-4 border-purple-500 pl-3">
                       <h3 className="font-medium text-gray-900">{marcher.name}</h3>
                       <p className="text-sm text-gray-600">{marcher.email}</p>
+                      {/* Training Badges */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {marcher.medic && (
+                          <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            <Stethoscope className="h-3 w-3 mr-1" />
+                            Medic
+                          </div>
+                        )}
+                        {marcher.peacekeeper && (
+                          <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Peacekeeper
+                          </div>
+                        )}
+                      </div>
                       {marcher.dietaryRestrictions && (
                         <p className="text-xs text-orange-600 mt-1">
                           Dietary: {marcher.dietaryRestrictions}

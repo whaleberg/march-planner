@@ -209,10 +209,36 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
   };
 
   const updateMarcher = (marcherId: string, updatedMarcher: Marcher) => {
-    setMarchData(prev => ({
-      ...prev,
-      marchers: prev.marchers.map(marcher => marcher.id === marcherId ? updatedMarcher : marcher)
-    }));
+    setMarchData(prev => {
+      const oldMarcher = prev.marchers.find(m => m.id === marcherId);
+      const oldDays = oldMarcher?.marchingDays || [];
+      const newDays = updatedMarcher.marchingDays || [];
+      
+      // Find days where the marcher was removed
+      const removedDays = oldDays.filter(dayId => !newDays.includes(dayId));
+      
+      // Update marchers
+      const updatedMarchers = prev.marchers.map(marcher => 
+        marcher.id === marcherId ? updatedMarcher : marcher
+      );
+      
+      // Update days to remove march leader assignments for removed days
+      const updatedDays = prev.days.map(day => {
+        if (removedDays.includes(day.id) && day.marchLeaderId === marcherId) {
+          return {
+            ...day,
+            marchLeaderId: undefined
+          };
+        }
+        return day;
+      });
+      
+      return {
+        ...prev,
+        marchers: updatedMarchers,
+        days: updatedDays
+      };
+    });
   };
 
   const updatePartnerOrganization = (orgId: string, updatedOrg: PartnerOrganization) => {

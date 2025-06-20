@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { Marcher } from '../types';
-import { Users, Edit, Save, X, Plus, Trash2, Mail, Phone, User, Calendar, Heart } from 'lucide-react';
+import { Users, Edit, Save, X, Plus, Trash2, Mail, Phone, User, Calendar, Heart, Shield, Stethoscope } from 'lucide-react';
 
 const MarchersPage: React.FC = () => {
   const { marchData, updateMarcher, addMarcher, deleteMarcher } = useMarchData();
@@ -38,7 +38,9 @@ const MarchersPage: React.FC = () => {
         phone: newMarcher.phone || '',
         emergencyContact: newMarcher.emergencyContact || '',
         dietaryRestrictions: newMarcher.dietaryRestrictions || '',
-        notes: newMarcher.notes || ''
+        notes: newMarcher.notes || '',
+        medic: newMarcher.medic || false,
+        peacekeeper: newMarcher.peacekeeper || false
       };
       addMarcher(marcher);
       setIsAdding(false);
@@ -147,6 +149,32 @@ const MarchersPage: React.FC = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="Any additional information"
               />
+            </div>
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={newMarcher.medic || false}
+                  onChange={(e) => setNewMarcher({ ...newMarcher, medic: e.target.checked })}
+                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                  <Stethoscope className="h-4 w-4 mr-1" />
+                  Medic Training
+                </span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={newMarcher.peacekeeper || false}
+                  onChange={(e) => setNewMarcher({ ...newMarcher, peacekeeper: e.target.checked })}
+                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                  <Shield className="h-4 w-4 mr-1" />
+                  Peacekeeper Training
+                </span>
+              </label>
             </div>
           </div>
           <div className="flex space-x-4 mt-6">
@@ -278,6 +306,52 @@ const MarchersPage: React.FC = () => {
                     <span className="font-medium">Notes:</span> {marcher.notes}
                   </div>
                 )}
+
+                {/* Training Fields - Edit Mode */}
+                {isEditing && (
+                  <div className="flex items-center space-x-4 mt-3">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={currentMarcher.medic || false}
+                        onChange={(e) => setEditedMarcher({ ...currentMarcher, medic: e.target.checked })}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                        <Stethoscope className="h-4 w-4 mr-1" />
+                        Medic Training
+                      </span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={currentMarcher.peacekeeper || false}
+                        onChange={(e) => setEditedMarcher({ ...currentMarcher, peacekeeper: e.target.checked })}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                        <Shield className="h-4 w-4 mr-1" />
+                        Peacekeeper Training
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Training Badges */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {marcher.medic && (
+                    <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      <Stethoscope className="h-3 w-3 mr-1" />
+                      Medic
+                    </div>
+                  )}
+                  {marcher.peacekeeper && (
+                    <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      <Shield className="h-3 w-3 mr-1" />
+                      Peacekeeper
+                    </div>
+                  )}
+                </div>
 
                 {/* Schedule Summary */}
                 {marcher.marchingDays && marcher.marchingDays.length > 0 && (

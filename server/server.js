@@ -17,10 +17,39 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(helmet());
-app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
+
+// Serve static files from the root directory
+app.use(express.static(path.join(__dirname, '..')));
+
+// Serve JSON files directly
+app.get('/data/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, '..', filename);
+  
+  // Only allow JSON files
+  if (!filename.endsWith('.json')) {
+    return res.status(403).json({ error: 'Only JSON files are allowed' });
+  }
+  
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving file:', err);
+      res.status(404).json({ error: 'File not found' });
+    }
+  });
+});
 
 // Data file path
 const DATA_FILE = path.join(__dirname, 'data', 'march-data.json');

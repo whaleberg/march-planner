@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Settings, Download, Upload, RotateCcw, Edit, Save, X } from 'lucide-react';
+import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Settings, Download, Upload, RotateCcw, Edit, Save, X, Stethoscope, Shield } from 'lucide-react';
 import Map from './Map';
 import { RoutePoint, MarchDay } from '../types';
 import { getRoutePointName } from '../utils/routeUtils';
@@ -26,6 +26,28 @@ const Overview: React.FC = () => {
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [isEditingItinerary, setIsEditingItinerary] = useState(false);
   const [editedData, setEditedData] = useState(marchData);
+
+  // Helper functions to count medics and peacekeepers for a day
+  const getDayMedicCount = (dayId: string) => {
+    return marchData.marchers.filter(m => 
+      m.marchingDays?.includes(dayId) && m.medic
+    ).length;
+  };
+
+  const getDayPeacekeeperCount = (dayId: string) => {
+    return marchData.marchers.filter(m => 
+      m.marchingDays?.includes(dayId) && m.peacekeeper
+    ).length;
+  };
+
+  // Helper functions to get total counts across all days
+  const getTotalMedicCount = () => {
+    return marchData.marchers.filter(m => m.medic).length;
+  };
+
+  const getTotalPeacekeeperCount = () => {
+    return marchData.marchers.filter(m => m.peacekeeper).length;
+  };
 
   // Update edited data when marchData changes
   useEffect(() => {
@@ -469,7 +491,7 @@ const Overview: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-12">
         <div className="card p-6">
           <div className="flex items-center">
             <div className="bg-red-100 p-3 rounded-full">
@@ -514,6 +536,28 @@ const Overview: React.FC = () => {
               <p className="text-sm font-medium text-gray-500">Partners</p>
               <p className="text-2xl font-bold text-gray-900">
                 {marchData.partnerOrganizations.length}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="bg-gradient-to-r from-red-100 to-blue-100 p-3 rounded-full">
+              <div className="flex items-center space-x-1">
+                <Stethoscope className="h-6 w-6 text-red-600" />
+                <Shield className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Safety Team</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {canEdit() ? (
+                  <span>
+                    {getTotalMedicCount()} medic{getTotalMedicCount() !== 1 ? 's' : ''} • {getTotalPeacekeeperCount()} peacekeeper{getTotalPeacekeeperCount() !== 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  'Available'
+                )}
               </p>
             </div>
           </div>
@@ -742,6 +786,18 @@ const Overview: React.FC = () => {
                           <Users className="h-4 w-4 mr-1" />
                           {marchData.marchers.filter(m => m.marchingDays?.includes(day.id)).length} marchers
                         </span>
+                        {getDayMedicCount(day.id) > 0 && (
+                          <span className="flex items-center">
+                            <Stethoscope className="h-4 w-4 mr-1 text-red-500" />
+                            {getDayMedicCount(day.id)} medic{getDayMedicCount(day.id) !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {getDayPeacekeeperCount(day.id) > 0 && (
+                          <span className="flex items-center">
+                            <Shield className="h-4 w-4 mr-1 text-blue-500" />
+                            {getDayPeacekeeperCount(day.id)} peacekeeper{getDayPeacekeeperCount(day.id) !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                       {isClicked && clickedPolyline && (
                         <div className="mt-2 p-2 bg-blue-100 rounded-md text-sm">

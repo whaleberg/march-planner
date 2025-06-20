@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { Marcher } from '../types';
-import { Calendar, Users, Check, X } from 'lucide-react';
+import { Calendar, Users, Check, X, Stethoscope, Shield } from 'lucide-react';
 
 const MarcherSchedule: React.FC = () => {
   const { marchData, updateMarcher, getDayNumber } = useMarchData();
@@ -85,6 +85,21 @@ const MarcherSchedule: React.FC = () => {
                 >
                   <div className="font-medium text-gray-900">{marcher.name}</div>
                   <div className="text-sm text-gray-600">{marcher.email}</div>
+                  {/* Training Badges */}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {marcher.medic && (
+                      <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                        <Stethoscope className="h-3 w-3 mr-1" />
+                        Medic
+                      </div>
+                    )}
+                    {marcher.peacekeeper && (
+                      <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Peacekeeper
+                      </div>
+                    )}
+                  </div>
                   {marcher.marchingDays && marcher.marchingDays.length > 0 && (
                     <div className="text-xs text-blue-600 mt-1">
                       {marcher.marchingDays.length} day(s) scheduled

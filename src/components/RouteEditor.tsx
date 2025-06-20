@@ -9,12 +9,12 @@ import { useMarchData } from '../context/MarchContext';
 interface RouteEditorProps {
   route: DayRoute;
   onRouteUpdate: (updatedRoute: DayRoute) => void;
-  isEditing?: boolean;
   ready?: boolean;
 }
 
-const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditing = false, ready = true }) => {
+const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready = true }) => {
   const { getDayDistance, getDayWalkingTime } = useMarchData();
+  const [isRouteEditing, setIsRouteEditing] = useState(false);
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>(route.routePoints || []);
   const [editingPoint, setEditingPoint] = useState<RoutePoint | null>(null);
   const [newPoint, setNewPoint] = useState<Partial<RoutePoint>>({
@@ -33,6 +33,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   const [editingPointName, setEditingPointName] = useState('');
   const [showEditLocationPreview, setShowEditLocationPreview] = useState(false);
   const [editPreviewAddress, setEditPreviewAddress] = useState('');
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Create a temporary day object for computing distance and time
   const tempDay = {
@@ -53,7 +54,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   // Sync routePoints with route prop when it changes
   useEffect(() => {
     setRoutePoints(route.routePoints || []);
-  }, [route.routePoints]);
+  }, [route]);
 
   // Auto-populate start/end points from route points
   useEffect(() => {
@@ -197,7 +198,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   };
 
   const handleMapClick = async (coordinates: MapCoordinates) => {
-    if (!isEditing) return;
+    if (!isRouteEditing) return;
 
     // Reverse geocode to get address
     const geocoder = new google.maps.Geocoder();
@@ -336,8 +337,87 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
     setEditPreviewAddress('');
   };
 
+  const handleRegeolocateAllPoints = async () => {
+    if (!ready || routePoints.length === 0) return;
+    
+    setIsCalculating(true);
+    
+    try {
+      const updatedPoints: RoutePoint[] = [];
+      
+      for (const point of routePoints) {
+        const address = point.address || point.name;
+        if (address) {
+          const coordinates = await geocodeAddress(address);
+          if (coordinates) {
+            updatedPoints.push({
+              ...point,
+              coordinates
+            });
+          } else {
+            // Keep original coordinates if geocoding fails
+            updatedPoints.push(point);
+          }
+        } else {
+          // Keep point as is if no address
+          updatedPoints.push(point);
+        }
+      }
+      
+      setRoutePoints(updatedPoints);
+      
+      // Recalculate route with updated coordinates
+      const routeResult = await calculateRoute(updatedPoints);
+      if (routeResult) {
+        onRouteUpdate({
+          ...route,
+          routePoints: updatedPoints,
+          polylinePath: routeResult.polylinePath
+        });
+      }
+      
+      // Show success message
+      setNotification({ type: 'success', message: `Successfully re-geolocated ${updatedPoints.length} route points with more accurate coordinates.` });
+      
+    } catch (error) {
+      console.error('Error re-geolocating points:', error);
+      setNotification({ type: 'error', message: 'Error re-geolocating points. Please try again.' });
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   return (
     <div className="space-y-6">
+      {/* Notification */}
+      {notification && (
+        <div className={`p-4 rounded-md ${
+          notification.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Map Display */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -361,15 +441,77 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
             <Navigation className="h-5 w-5 mr-2" />
             Route Points
           </h3>
-          {isEditing && (
-            <div className="text-sm text-gray-600">
-              Distance: {computedDistance.toFixed(1)} miles | Walking Time: {computedWalkingTime} hours
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            {isRouteEditing && (
+              <div className="text-sm text-gray-600 mr-4">
+                Distance: {computedDistance.toFixed(1)} miles | Walking Time: {computedWalkingTime} hours
+              </div>
+            )}
+            {isRouteEditing ? (
+              <>
+                <button
+                  onClick={handleRegeolocateAllPoints}
+                  disabled={isCalculating || routePoints.length === 0}
+                  className="bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2 text-sm"
+                  title="Re-geolocate all route points with more accurate coordinates"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>{isCalculating ? 'Geolocating...' : 'Re-geolocate All'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsRouteEditing(false);
+                    setEditingPoint(null);
+                    setNewPoint({
+                      name: '',
+                      type: 'waypoint',
+                      description: '',
+                      estimatedTime: '',
+                      notes: ''
+                    });
+                    setPreviewAddress('');
+                    setShowInsertOptions(false);
+                  }}
+                  className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2 text-sm"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Route</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsRouteEditing(false);
+                    setEditingPoint(null);
+                    setRoutePoints(route.routePoints || []);
+                    setNewPoint({
+                      name: '',
+                      type: 'waypoint',
+                      description: '',
+                      estimatedTime: '',
+                      notes: ''
+                    });
+                    setPreviewAddress('');
+                    setShowInsertOptions(false);
+                  }}
+                  className="bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 flex items-center space-x-2 text-sm"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Cancel</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsRouteEditing(true)}
+                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm"
+              >
+                <Edit className="h-4 w-4" />
+                <span>Edit Route</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Add New Point Form */}
-        {isEditing && (
+        {isRouteEditing && (
           <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
             <h4 className="font-medium text-gray-900 mb-3">Add New Point</h4>
             
@@ -591,7 +733,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
                         <p className="text-xs text-gray-500 mt-1">{point.notes}</p>
                       )}
                     </div>
-                    {isEditing && (
+                    {isRouteEditing && (
                       <div className="flex space-x-1 ml-4">
                         <button
                           onClick={() => handleEditPoint(point)}
