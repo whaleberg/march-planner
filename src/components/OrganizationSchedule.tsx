@@ -127,7 +127,7 @@ const OrganizationSchedule: React.FC = () => {
                         )}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {new Date(day.date).toLocaleDateString('en-US', { 
+                        {new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
                           month: 'short', 
                           day: 'numeric' 
                         })}

@@ -54,6 +54,38 @@ export const geocodeAddress = async (address: string): Promise<MapCoordinates | 
   }
 };
 
+export const geocodeAddressMultiple = async (address: string): Promise<Array<{
+  coordinates: MapCoordinates;
+  formattedAddress: string;
+  placeId: string;
+}> | null> => {
+  try {
+    const google = await initializeGoogleMaps();
+    const geocoder = new google.maps.Geocoder();
+    
+    return new Promise((resolve, reject) => {
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === 'OK' && results && results.length > 0) {
+          const locations = results.slice(0, 5).map(result => ({
+            coordinates: {
+              lat: result.geometry.location.lat(),
+              lng: result.geometry.location.lng()
+            },
+            formattedAddress: result.formatted_address,
+            placeId: result.place_id
+          }));
+          resolve(locations);
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+};
+
 export const calculateRoute = async (
   waypoints: RoutePoint[]
 ): Promise<{

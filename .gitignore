@@ -121,3 +121,78 @@ coverage/
 
 # Misc
 *.pem
+
+# Server-specific additions
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Server logs
+server/logs/
+server/*.log
+
+# Server environment files
+server/.env
+server/.env.local
+server/.env.development
+server/.env.production
+
+# Server node_modules (if using separate package.json)
+server/node_modules/
+
+# Server build outputs
+server/dist/
+server/build/
+
+# Authentication tokens and secrets
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Backup files
+backup/
+*.backup
+*.bak
+
+# Upload directories
+uploads/
+public/uploads/
+
+# Session stores
+sessions/
+
+# Cache directories
+.cache/
+cache/
+
+# Local development data
+data/local/
+data/dev/
+
+# PM2 process files
+ecosystem.config.js
+.pm2/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# SSL certificates
+ssl/
+*.crt
+*.key
+*.pem
+
+# API keys and secrets (additional patterns)
+config/secrets.json
+config/keys.json
+secrets/
+keys/
+
+# Local development files
+local/
+dev/

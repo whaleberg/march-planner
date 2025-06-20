@@ -2,6 +2,7 @@
   "name": "march-organizer",
   "version": "1.0.0",
   "description": "Web app for organizing a long distance march",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",

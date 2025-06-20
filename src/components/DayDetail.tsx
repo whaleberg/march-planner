@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
-import { MapPin, Clock, Users, Building2, Edit, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { MapPin, Clock, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarchDay, Meal, SpecialEvent } from '../types';
 import RouteEditor from './RouteEditor';
 
 const DayDetail: React.FC = () => {
   const { dayId } = useParams<{ dayId: string }>();
-  const { marchData, updateDay, getDayNumber } = useMarchData();
+  const { marchData, isLoading, updateDay, getDayNumber, getDayDistance, getDayWalkingTime } = useMarchData();
+  const { canEdit } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedDay, setEditedDay] = useState<MarchDay | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -19,12 +22,32 @@ const DayDetail: React.FC = () => {
     organizer: ''
   });
 
+  // Helper function to safely format dates
+  const formatDayDate = (dateString: string | undefined) => {
+    if (isLoading) return 'Loading...';
+    if (!dateString || dateString.trim() === '') return 'No date set';
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [dayId]);
 
   const day = marchData.days.find(d => d.id === dayId);
+  const dayIndex = marchData.days.findIndex(d => d.id === dayId);
+  const prevDay = dayIndex > 0 ? marchData.days[dayIndex - 1] : null;
+  const nextDay = dayIndex < marchData.days.length - 1 ? marchData.days[dayIndex + 1] : null;
   
   // Get marchers who are scheduled for this day
   const dayMarchers = marchData.marchers.filter(m => 
@@ -36,25 +59,72 @@ const DayDetail: React.FC = () => {
     p.partnerDays?.includes(dayId || '')
   );
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft' && prevDay) {
+        navigate(`/day/${prevDay.id}`);
+      } else if (event.key === 'ArrowRight' && nextDay) {
+        navigate(`/day/${nextDay.id}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [prevDay, nextDay, navigate]);
+
+  // Show loading state if data is not ready
+  if (isLoading || !marchData) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading march data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!day) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Day not found</h1>
-          <Link to="/" className="text-blue-600 hover:text-blue-800">Back to Overview</Link>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Day Not Found</h1>
+          <p className="text-gray-600 mb-4">The requested day could not be found.</p>
+          <Link to="/" className="text-blue-600 hover:text-blue-800">
+            ← Back to Overview
+          </Link>
         </div>
       </div>
     );
   }
 
   const handleEdit = () => {
-    setEditedDay({ ...day });
+    // Deep copy the day object to prevent sharing references
+    const deepCopy = {
+      ...day,
+      id: day.id, // Ensure the id is preserved
+      route: {
+        ...day.route,
+        routePoints: [...(day.route.routePoints || [])] // Deep copy the routePoints array
+      },
+      specialEvents: [...day.specialEvents], // Deep copy special events array
+      marchers: [...day.marchers], // Deep copy marchers array
+      partnerOrganizations: [...day.partnerOrganizations] // Deep copy partner organizations array
+    };
+    setEditedDay(deepCopy);
     setIsEditing(true);
   };
 
   const handleSave = () => {
     if (editedDay) {
-      updateDay(day.id, editedDay);
+      const savedDay = {
+        ...editedDay,
+        id: day.id // Ensure the id is preserved
+      };
+      updateDay(day.id, savedDay);
       setIsEditing(false);
       setEditedDay(null);
       setEditingEventId(null);
@@ -127,63 +197,109 @@ const DayDetail: React.FC = () => {
   };
 
   const handleRouteUpdate = (updatedRoute: any) => {
-    const updatedDay = {
-      ...editedDay!,
-      route: updatedRoute
+    // Deep copy the route to prevent sharing references
+    const deepCopiedRoute = {
+      ...updatedRoute,
+      routePoints: updatedRoute.routePoints ? 
+        updatedRoute.routePoints.map((point: any) => ({ ...point })) : []
     };
     
-    // Update the local state
-    setEditedDay(updatedDay);
+    // Use editedDay if available, otherwise use the original day
+    const baseDay = editedDay || day;
+    
+    const updatedDay = {
+      ...baseDay,
+      id: day.id, // Ensure the id is preserved
+      date: baseDay.date, // Ensure the date is preserved
+      route: deepCopiedRoute
+    };
+    
+    // Update the local state if we're in editing mode
+    if (isEditing) {
+      setEditedDay(updatedDay);
+    }
     
     // Automatically save the route changes to the main data
     updateDay(day.id, updatedDay);
   };
 
-  const currentDay = isEditing ? editedDay! : day;
+  const currentDay = isEditing && editedDay ? editedDay : day;
   const dayNumber = getDayNumber(day.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <Link to="/" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
-            ← Back to Overview
+        <div className="flex items-center space-x-4">
+          <Link 
+            to="/" 
+            state={{ scrollToDay: dayId }}
+            className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span>Back to Overview</span>
           </Link>
+          
+          {/* Previous Day Button */}
+          {prevDay && (
+            <button
+              onClick={() => navigate(`/day/${prevDay.id}`)}
+              className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 px-3 py-1 rounded-md hover:bg-gray-100"
+              title={`Go to Day ${getDayNumber(prevDay.id)}`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Day {getDayNumber(prevDay.id)}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 text-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            Day {dayNumber} - {new Date(currentDay.date).toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+            Day {dayNumber} - {formatDayDate(currentDay.date)}
           </h1>
         </div>
-        <div className="flex space-x-2">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleSave}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save</span>
-              </button>
-              <button
-                onClick={handleCancel}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center space-x-2"
-              >
-                <X className="h-4 w-4" />
-                <span>Cancel</span>
-              </button>
-            </>
-          ) : (
+
+        <div className="flex items-center space-x-4">
+          {/* Next Day Button */}
+          {nextDay && (
             <button
-              onClick={handleEdit}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+              onClick={() => navigate(`/day/${nextDay.id}`)}
+              className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 px-3 py-1 rounded-md hover:bg-gray-100"
+              title={`Go to Day ${getDayNumber(nextDay.id)}`}
             >
-              <Edit className="h-4 w-4" />
-              <span>Edit</span>
+              <span className="hidden sm:inline">Day {getDayNumber(nextDay.id)}</span>
+              <ChevronRight className="h-4 w-4" />
             </button>
+          )}
+
+          {/* Edit Buttons */}
+          {canEdit() && (
+            isEditing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save</span>
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center space-x-2"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Cancel</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleEdit}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+              >
+                <Edit className="h-4 w-4" />
+                <span>Edit</span>
+              </button>
+            )
           )}
         </div>
       </div>
@@ -226,30 +342,11 @@ const DayDetail: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Distance (miles)</label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    value={currentDay.route.distance}
-                    onChange={(e) => setEditedDay({ ...currentDay, route: { ...currentDay.route, distance: parseFloat(e.target.value) } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-900">{currentDay.route.distance} miles</p>
-                )}
+                <p className="mt-1 text-gray-900">{getDayDistance(currentDay).toFixed(1)} miles</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Estimated Duration (hours)</label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={currentDay.route.estimatedDuration}
-                    onChange={(e) => setEditedDay({ ...currentDay, route: { ...currentDay.route, estimatedDuration: parseFloat(e.target.value) } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-900">~{currentDay.route.estimatedDuration} hours</p>
-                )}
+                <label className="block text-sm font-medium text-gray-700">Walking Time (hours)</label>
+                <p className="mt-1 text-gray-900">~{getDayWalkingTime(currentDay)} hours walking</p>
               </div>
             </div>
           </div>
@@ -258,7 +355,8 @@ const DayDetail: React.FC = () => {
           <RouteEditor
             route={currentDay.route}
             onRouteUpdate={handleRouteUpdate}
-            isEditing={isEditing}
+            isEditing={isEditing && canEdit()}
+            ready={!isLoading && !!day}
           />
 
           {/* Meals */}
@@ -267,6 +365,7 @@ const DayDetail: React.FC = () => {
             <div className="space-y-6">
               {['breakfast', 'lunch', 'dinner'].map((mealType) => {
                 const meal = currentDay[mealType as keyof MarchDay] as Meal;
+                if (!meal) return null; // Skip if meal is undefined
                 return (
                   <div key={mealType} className="border-l-4 border-blue-500 pl-4">
                     <h3 className="text-lg font-medium text-gray-900 capitalize">{mealType}</h3>
@@ -276,7 +375,7 @@ const DayDetail: React.FC = () => {
                         {isEditing ? (
                           <input
                             type="text"
-                            value={meal.time}
+                            value={meal.time || ''}
                             onChange={(e) => setEditedDay({ 
                               ...currentDay, 
                               [mealType]: { ...meal, time: e.target.value } 
@@ -284,7 +383,7 @@ const DayDetail: React.FC = () => {
                             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                           />
                         ) : (
-                          <p className="mt-1 text-gray-900">{meal.time}</p>
+                          <p className="mt-1 text-gray-900">{meal.time || 'Not specified'}</p>
                         )}
                       </div>
                       <div>
@@ -292,7 +391,7 @@ const DayDetail: React.FC = () => {
                         {isEditing ? (
                           <input
                             type="text"
-                            value={meal.location}
+                            value={meal.location || ''}
                             onChange={(e) => setEditedDay({ 
                               ...currentDay, 
                               [mealType]: { ...meal, location: e.target.value } 
@@ -300,14 +399,14 @@ const DayDetail: React.FC = () => {
                             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                           />
                         ) : (
-                          <p className="mt-1 text-gray-900">{meal.location}</p>
+                          <p className="mt-1 text-gray-900">{meal.location || 'Not specified'}</p>
                         )}
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700">Description</label>
                         {isEditing ? (
                           <textarea
-                            value={meal.description}
+                            value={meal.description || ''}
                             onChange={(e) => setEditedDay({ 
                               ...currentDay, 
                               [mealType]: { ...meal, description: e.target.value } 
@@ -316,7 +415,7 @@ const DayDetail: React.FC = () => {
                             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                           />
                         ) : (
-                          <p className="mt-1 text-gray-900">{meal.description}</p>
+                          <p className="mt-1 text-gray-900">{meal.description || 'No description'}</p>
                         )}
                       </div>
                     </div>
@@ -521,28 +620,43 @@ const DayDetail: React.FC = () => {
                 <Users className="h-5 w-5 mr-2" />
                 Marchers ({dayMarchers.length})
               </h2>
-              <Link 
-                to="/marcher-schedule" 
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Manage Schedule
-              </Link>
+              {canEdit() && (
+                <Link 
+                  to="/marcher-schedule" 
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  Manage Schedule
+                </Link>
+              )}
             </div>
             {dayMarchers.length === 0 ? (
               <p className="text-gray-500 text-sm">No marchers scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
-                {dayMarchers.map((marcher) => (
-                  <div key={marcher.id} className="border-l-4 border-purple-500 pl-3">
-                    <h3 className="font-medium text-gray-900">{marcher.name}</h3>
-                    <p className="text-sm text-gray-600">{marcher.email}</p>
-                    {marcher.dietaryRestrictions && (
-                      <p className="text-xs text-orange-600 mt-1">
-                        Dietary: {marcher.dietaryRestrictions}
-                      </p>
-                    )}
+                {canEdit() ? (
+                  // Show full marcher list for authenticated users
+                  dayMarchers.map((marcher) => (
+                    <div key={marcher.id} className="border-l-4 border-purple-500 pl-3">
+                      <h3 className="font-medium text-gray-900">{marcher.name}</h3>
+                      <p className="text-sm text-gray-600">{marcher.email}</p>
+                      {marcher.dietaryRestrictions && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          Dietary: {marcher.dietaryRestrictions}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  // Show only count and message for public users
+                  <div className="text-center py-4">
+                    <p className="text-gray-600 text-sm">
+                      {dayMarchers.length} marcher{dayMarchers.length !== 1 ? 's' : ''} participating
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Sign in to view participant details
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -554,12 +668,14 @@ const DayDetail: React.FC = () => {
                 <Building2 className="h-5 w-5 mr-2" />
                 Partner Organizations ({dayPartners.length})
               </h2>
-              <Link 
-                to="/org-schedule" 
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Manage Schedule
-              </Link>
+              {canEdit() && (
+                <Link 
+                  to="/org-schedule" 
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  Manage Schedule
+                </Link>
+              )}
             </div>
             {dayPartners.length === 0 ? (
               <p className="text-gray-500 text-sm">No partner organizations scheduled for this day.</p>

@@ -11,6 +11,9 @@ interface MapProps {
   height?: string;
   showControls?: boolean;
   onMapClick?: (coordinates: MapCoordinates) => void;
+  onPolylineHover?: (startPoint: RoutePoint, endPoint: RoutePoint, dayIndex: number) => void;
+  onPolylineClick?: (startPoint: RoutePoint, endPoint: RoutePoint, dayIndex: number) => void;
+  onPolylineLeave?: () => void;
   className?: string;
 }
 
@@ -22,23 +25,38 @@ const Map: React.FC<MapProps> = ({
   height = '400px',
   showControls = false,
   onMapClick,
+  onPolylineHover,
+  onPolylineClick,
+  onPolylineLeave,
   className = ''
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [polylines, setPolylines] = useState<google.maps.Polyline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current) {
+        console.warn('Map: mapRef.current is null, skipping map creation');
+        return;
+      }
 
       try {
         setIsLoading(true);
         setError(null);
 
         const google = await initializeGoogleMaps();
+        
+        // Double-check that the ref still exists after async operations
+        if (!mapRef.current) {
+          console.warn('Map: mapRef.current became null after async operations');
+          setIsLoading(false);
+          return;
+        }
+        
         const newMap = createMap(mapRef.current, center, zoom);
         setMap(newMap);
 
@@ -68,16 +86,74 @@ const Map: React.FC<MapProps> = ({
   useEffect(() => {
     if (!map || routePoints.length === 0) return;
 
-    // Clear existing markers
+    // Clear existing markers and polylines
     markers.forEach(marker => marker.setMap(null));
+    polylines.forEach(polyline => polyline.setMap(null));
     
     // Add new route and markers
     const newMarkers = addRouteToMap(map, routePoints, polylinePath);
     setMarkers(newMarkers);
 
+    // Create interactive polylines if we have polyline interaction handlers
+    if (onPolylineHover || onPolylineClick) {
+      const newPolylines: google.maps.Polyline[] = [];
+      
+      // Create polylines between consecutive points
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        const startPoint = routePoints[i];
+        const endPoint = routePoints[i + 1];
+        
+        const polyline = new google.maps.Polyline({
+          path: [
+            { lat: startPoint.coordinates.lat, lng: startPoint.coordinates.lng },
+            { lat: endPoint.coordinates.lat, lng: endPoint.coordinates.lng }
+          ],
+          geodesic: true,
+          strokeColor: '#FF0000',
+          strokeOpacity: 0.7,
+          strokeWeight: 4,
+          map
+        });
+
+        // Add hover events
+        if (onPolylineHover) {
+          polyline.addListener('mouseover', () => {
+            polyline.setOptions({
+              strokeColor: '#FF6B35',
+              strokeOpacity: 1.0,
+              strokeWeight: 6
+            });
+            onPolylineHover(startPoint, endPoint, i);
+          });
+        }
+
+        if (onPolylineLeave) {
+          polyline.addListener('mouseout', () => {
+            polyline.setOptions({
+              strokeColor: '#FF0000',
+              strokeOpacity: 0.7,
+              strokeWeight: 4
+            });
+            onPolylineLeave();
+          });
+        }
+
+        // Add click events
+        if (onPolylineClick) {
+          polyline.addListener('click', () => {
+            onPolylineClick(startPoint, endPoint, i);
+          });
+        }
+
+        newPolylines.push(polyline);
+      }
+      
+      setPolylines(newPolylines);
+    }
+
     // Fit map to show all route points
     fitMapToBounds(map, routePoints);
-  }, [map, routePoints, polylinePath]);
+  }, [map, routePoints, polylinePath, onPolylineHover, onPolylineClick, onPolylineLeave]);
 
   if (error) {
     return (

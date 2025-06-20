@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { MarchDay, DayRoute, Meal, SpecialEvent } from '../types';
 import { Calendar, MapPin, Clock, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye } from 'lucide-react';
+import { getRoutePointName } from '../utils/routeUtils';
 
 const DayManagement: React.FC = () => {
   const { marchData, updateDay, addDay, deleteDay, getDayNumber, updateStartDate } = useMarchData();
@@ -23,10 +24,10 @@ const DayManagement: React.FC = () => {
       route: {
         startPoint: newDay.route.startPoint,
         endPoint: newDay.route.endPoint,
-        distance: newDay.route.distance || 0,
-        estimatedDuration: newDay.route.estimatedDuration || 0,
         terrain: newDay.route.terrain || '',
-        notes: newDay.route.notes || ''
+        notes: newDay.route.notes || '',
+        routePoints: [],
+        polylinePath: ''
       },
       breakfast: {
         time: '7:00 AM',
@@ -97,13 +98,12 @@ const DayManagement: React.FC = () => {
       setNewDay({
         ...newDay,
         route: {
-          ...newDay.route,
           startPoint: prevDay.route.endPoint,
           endPoint: newDay.route?.endPoint || '',
-          distance: newDay.route?.distance || 0,
-          estimatedDuration: newDay.route?.estimatedDuration || 0,
           terrain: newDay.route?.terrain || '',
-          notes: newDay.route?.notes || ''
+          notes: newDay.route?.notes || '',
+          routePoints: newDay.route?.routePoints || [],
+          polylinePath: newDay.route?.polylinePath || ''
         }
       });
     } else if (position === 0 && marchData.days.length > 0) {
@@ -112,13 +112,12 @@ const DayManagement: React.FC = () => {
       setNewDay({
         ...newDay,
         route: {
-          ...newDay.route,
           startPoint: newDay.route?.startPoint || '',
           endPoint: firstDay.route.startPoint,
-          distance: newDay.route?.distance || 0,
-          estimatedDuration: newDay.route?.estimatedDuration || 0,
           terrain: newDay.route?.terrain || '',
-          notes: newDay.route?.notes || ''
+          notes: newDay.route?.notes || '',
+          routePoints: newDay.route?.routePoints || [],
+          polylinePath: newDay.route?.polylinePath || ''
         }
       });
     }
@@ -234,7 +233,7 @@ const DayManagement: React.FC = () => {
                     <option value={0}>At the beginning (before Day 1)</option>
                     {marchData.days.map((day, index) => (
                       <option key={day.id} value={index + 1}>
-                        After Day {index + 1} - {day.route.startPoint} → {day.route.endPoint}
+                        After Day {index + 1} - {getRoutePointName(day, 'start')} → {getRoutePointName(day, 'end')}
                       </option>
                     ))}
                   </>
@@ -292,13 +291,12 @@ const DayManagement: React.FC = () => {
                   onChange={(e) => setNewDay({ 
                     ...newDay, 
                     route: { 
-                      ...newDay.route, 
                       startPoint: e.target.value,
                       endPoint: newDay.route?.endPoint || '',
-                      distance: newDay.route?.distance || 0,
-                      estimatedDuration: newDay.route?.estimatedDuration || 0,
                       terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || ''
+                      notes: newDay.route?.notes || '',
+                      routePoints: newDay.route?.routePoints || [],
+                      polylinePath: newDay.route?.polylinePath || ''
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -317,10 +315,10 @@ const DayManagement: React.FC = () => {
                       ...newDay.route, 
                       endPoint: e.target.value,
                       startPoint: newDay.route?.startPoint || '',
-                      distance: newDay.route?.distance || 0,
-                      estimatedDuration: newDay.route?.estimatedDuration || 0,
                       terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || ''
+                      notes: newDay.route?.notes || '',
+                      routePoints: newDay.route?.routePoints || [],
+                      polylinePath: newDay.route?.polylinePath || ''
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -329,47 +327,45 @@ const DayManagement: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Distance (miles)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Terrain</label>
                 <input
-                  type="number"
-                  step="0.1"
-                  value={newDay.route?.distance || ''}
+                  type="text"
+                  value={newDay.route?.terrain || ''}
                   onChange={(e) => setNewDay({ 
                     ...newDay, 
                     route: { 
                       ...newDay.route, 
-                      distance: parseFloat(e.target.value) || 0,
+                      terrain: e.target.value,
                       startPoint: newDay.route?.startPoint || '',
                       endPoint: newDay.route?.endPoint || '',
-                      estimatedDuration: newDay.route?.estimatedDuration || 0,
-                      terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || ''
+                      notes: newDay.route?.notes || '',
+                      routePoints: newDay.route?.routePoints || [],
+                      polylinePath: newDay.route?.polylinePath || ''
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Distance in miles"
+                  placeholder="Terrain description"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Duration (hours)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={newDay.route?.estimatedDuration || ''}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea
+                  value={newDay.route?.notes || ''}
                   onChange={(e) => setNewDay({ 
                     ...newDay, 
                     route: { 
                       ...newDay.route, 
-                      estimatedDuration: parseFloat(e.target.value) || 0,
+                      notes: e.target.value,
                       startPoint: newDay.route?.startPoint || '',
                       endPoint: newDay.route?.endPoint || '',
-                      distance: newDay.route?.distance || 0,
                       terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || ''
+                      routePoints: newDay.route?.routePoints || [],
+                      polylinePath: newDay.route?.polylinePath || ''
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Estimated hours"
+                  placeholder="Route notes"
+                  rows={3}
                 />
               </div>
             </div>
@@ -417,7 +413,7 @@ const DayManagement: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Day {dayNumber} - {new Date(day.date).toLocaleDateString('en-US', { 
+                      Day {dayNumber} - {new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
                         weekday: 'long', 
                         month: 'long', 
                         day: 'numeric' 
@@ -447,7 +443,7 @@ const DayManagement: React.FC = () => {
                           />
                         </div>
                       ) : (
-                        `${day.route.startPoint} → ${day.route.endPoint}`
+                        `${getRoutePointName(day, 'start')} → ${getRoutePointName(day, 'end')}`
                       )}
                     </p>
                   </div>
@@ -499,40 +495,10 @@ const DayManagement: React.FC = () => {
               </div>
 
               {/* Route Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-4 w-4 mr-2 text-red-500" />
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={currentDay.route.distance}
-                      onChange={(e) => setEditedDay({ 
-                        ...currentDay, 
-                        route: { ...currentDay.route, distance: parseFloat(e.target.value) || 0 } 
-                      })}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm w-20"
-                    />
-                  ) : (
-                    <span>{day.route.distance} miles</span>
-                  )}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="h-4 w-4 mr-2 text-blue-500" />
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={currentDay.route.estimatedDuration}
-                      onChange={(e) => setEditedDay({ 
-                        ...currentDay, 
-                        route: { ...currentDay.route, estimatedDuration: parseFloat(e.target.value) || 0 } 
-                      })}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm w-20"
-                    />
-                  ) : (
-                    <span>~{day.route.estimatedDuration} hours</span>
-                  )}
+                  <span>Route details</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Users className="h-4 w-4 mr-2 text-purple-500" />

@@ -3,14 +3,18 @@ import { RoutePoint, MapCoordinates, DayRoute } from '../types';
 import { geocodeAddress, calculateRoute } from '../services/mapsService';
 import Map from './Map';
 import { Plus, Edit, Trash2, Save, X, MapPin, Clock, Navigation, ChevronDown } from 'lucide-react';
+import LocationPreview from './LocationPreview';
+import { useMarchData } from '../context/MarchContext';
 
 interface RouteEditorProps {
   route: DayRoute;
   onRouteUpdate: (updatedRoute: DayRoute) => void;
   isEditing?: boolean;
+  ready?: boolean;
 }
 
-const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditing = false }) => {
+const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditing = false, ready = true }) => {
+  const { getDayDistance, getDayWalkingTime } = useMarchData();
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>(route.routePoints || []);
   const [editingPoint, setEditingPoint] = useState<RoutePoint | null>(null);
   const [newPoint, setNewPoint] = useState<Partial<RoutePoint>>({
@@ -24,6 +28,56 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   const [mapCenter, setMapCenter] = useState<MapCoordinates>({ lat: 39.8283, lng: -98.5795 }); // Center of US
   const [showInsertOptions, setShowInsertOptions] = useState(false);
   const [insertPosition, setInsertPosition] = useState<number>(0);
+  const [showLocationPreview, setShowLocationPreview] = useState(false);
+  const [previewAddress, setPreviewAddress] = useState('');
+  const [editingPointName, setEditingPointName] = useState('');
+  const [showEditLocationPreview, setShowEditLocationPreview] = useState(false);
+  const [editPreviewAddress, setEditPreviewAddress] = useState('');
+
+  // Create a temporary day object for computing distance and time
+  const tempDay = {
+    id: 'temp',
+    date: '',
+    route: { ...route, routePoints },
+    breakfast: { time: '', location: '', description: '' },
+    lunch: { time: '', location: '', description: '' },
+    dinner: { time: '', location: '', description: '' },
+    specialEvents: [],
+    marchers: [],
+    partnerOrganizations: []
+  };
+
+  const computedDistance = getDayDistance(tempDay);
+  const computedWalkingTime = getDayWalkingTime(tempDay);
+
+  // Sync routePoints with route prop when it changes
+  useEffect(() => {
+    setRoutePoints(route.routePoints || []);
+  }, [route.routePoints]);
+
+  // Auto-populate start/end points from route points
+  useEffect(() => {
+    if (!ready) return; // Don't update until ready
+    
+    if (routePoints.length > 0) {
+      const startPoint = routePoints.find(p => p.type === 'start');
+      const endPoint = routePoints.find(p => p.type === 'end');
+      
+      if (startPoint && startPoint.address !== route.startPoint) {
+        onRouteUpdate({
+          ...route,
+          startPoint: startPoint.address || startPoint.name
+        });
+      }
+      
+      if (endPoint && endPoint.address !== route.endPoint) {
+        onRouteUpdate({
+          ...route,
+          endPoint: endPoint.address || endPoint.name
+        });
+      }
+    }
+  }, [routePoints, route.startPoint, route.endPoint, onRouteUpdate, ready]);
 
   // Initialize route points if empty
   useEffect(() => {
@@ -33,16 +87,19 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
         const endCoords = await geocodeAddress(route.endPoint);
         
         if (startCoords && endCoords) {
+          const timestamp = Date.now();
           const points: RoutePoint[] = [
             {
-              id: 'start',
-              name: route.startPoint,
+              id: `start-${timestamp}`,
+              name: route.startPoint, // Use as display name
+              address: route.startPoint, // Use as full address
               coordinates: startCoords,
               type: 'start'
             },
             {
-              id: 'end',
-              name: route.endPoint,
+              id: `end-${timestamp}`,
+              name: route.endPoint, // Use as display name
+              address: route.endPoint, // Use as full address
               coordinates: endCoords,
               type: 'end'
             }
@@ -56,49 +113,9 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   }, [route.startPoint, route.endPoint]);
 
   const handleAddPoint = async () => {
-    if (!newPoint.name) return;
-
-    setIsCalculating(true);
-    const coordinates = await geocodeAddress(newPoint.name);
-    
-    if (coordinates) {
-      const point: RoutePoint = {
-        id: `point-${Date.now()}`,
-        name: newPoint.name,
-        coordinates,
-        type: newPoint.type || 'waypoint',
-        description: newPoint.description || '',
-        estimatedTime: newPoint.estimatedTime || '',
-        notes: newPoint.notes || ''
-      };
-
-      // Insert at the specified position
-      const updatedPoints = [...routePoints];
-      updatedPoints.splice(insertPosition, 0, point);
-      setRoutePoints(updatedPoints);
-      
-      // Recalculate route
-      const routeResult = await calculateRoute(updatedPoints);
-      if (routeResult) {
-        onRouteUpdate({
-          ...route,
-          routePoints: updatedPoints,
-          distance: routeResult.distance,
-          estimatedDuration: routeResult.duration,
-          polylinePath: routeResult.polylinePath
-        });
-      }
-
-      setNewPoint({
-        name: '',
-        type: 'waypoint',
-        description: '',
-        estimatedTime: '',
-        notes: ''
-      });
-      setShowInsertOptions(false);
-    }
-    setIsCalculating(false);
+    if (!previewAddress) return;
+    setPreviewAddress(previewAddress);
+    setShowLocationPreview(true);
   };
 
   const handleEditPoint = (point: RoutePoint) => {
@@ -106,22 +123,36 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   };
 
   const handleSavePoint = async () => {
-    if (!editingPoint) return;
-
-    setIsCalculating(true);
-    
-    // Read form values
-    const name = (document.getElementById(`event-title-${editingPoint.id}`) as HTMLInputElement)?.value || editingPoint.name;
+    if (!editingPoint || !ready) return;
+    const name = editingPointName || (document.getElementById(`event-title-${editingPoint.id}`) as HTMLInputElement)?.value || editingPoint.name;
+    const address = editPreviewAddress || editingPoint.address || editingPoint.name;
     const type = (document.getElementById(`event-type-${editingPoint.id}`) as HTMLSelectElement)?.value as RoutePoint['type'] || editingPoint.type;
     const estimatedTime = (document.getElementById(`event-time-${editingPoint.id}`) as HTMLInputElement)?.value || editingPoint.estimatedTime;
     const description = (document.getElementById(`event-description-${editingPoint.id}`) as HTMLInputElement)?.value || editingPoint.description;
     
-    const coordinates = await geocodeAddress(name);
+    // If name or address changed, trigger geocoding
+    if (name !== editingPoint.name || address !== (editingPoint.address || editingPoint.name)) {
+      setEditPreviewAddress(address);
+      setShowEditLocationPreview(true);
+      setNewPoint({
+        name,
+        type,
+        estimatedTime,
+        description,
+        notes: editingPoint.notes || ''
+      });
+      return;
+    }
+    
+    setIsCalculating(true);
+    
+    const coordinates = await geocodeAddress(address);
     
     if (coordinates) {
       const updatedPoint = { 
         ...editingPoint, 
         name,
+        address,
         type,
         coordinates,
         estimatedTime,
@@ -135,12 +166,10 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
       
       // Recalculate route
       const routeResult = await calculateRoute(updatedPoints);
-      if (routeResult) {
+      if (routeResult && ready) {
         onRouteUpdate({
           ...route,
           routePoints: updatedPoints,
-          distance: routeResult.distance,
-          estimatedDuration: routeResult.duration,
           polylinePath: routeResult.polylinePath
         });
       }
@@ -151,6 +180,8 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
   };
 
   const handleDeletePoint = async (pointId: string) => {
+    if (!ready) return;
+    
     const updatedPoints = routePoints.filter(p => p.id !== pointId);
     setRoutePoints(updatedPoints);
     
@@ -160,8 +191,6 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
       onRouteUpdate({
         ...route,
         routePoints: updatedPoints,
-        distance: routeResult.distance,
-        estimatedDuration: routeResult.duration,
         polylinePath: routeResult.polylinePath
       });
     }
@@ -177,7 +206,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
     geocoder.geocode({ location: latlng }, (results, status) => {
       if (status === 'OK' && results && results[0]) {
         const address = results[0].formatted_address;
-        setNewPoint(prev => ({ ...prev, name: address }));
+        setPreviewAddress(address);
       }
     });
   };
@@ -232,6 +261,81 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
     return options;
   };
 
+  const handleLocationSelect = async (coordinates: MapCoordinates, formattedAddress: string) => {
+    if (!ready) return;
+    
+    setIsCalculating(true);
+    if (showEditLocationPreview && editingPoint) {
+      // Editing an existing point
+      const updatedPoint = {
+        ...editingPoint,
+        name: newPoint.name || formattedAddress, // Use custom name or fallback to address
+        address: formattedAddress, // Always use the full formatted address
+        coordinates,
+        type: newPoint.type || editingPoint.type,
+        estimatedTime: newPoint.estimatedTime || editingPoint.estimatedTime,
+        description: newPoint.description || editingPoint.description
+      };
+      const updatedPoints = routePoints.map(p =>
+        p.id === editingPoint.id ? updatedPoint : p
+      );
+      setRoutePoints(updatedPoints);
+      const routeResult = await calculateRoute(updatedPoints);
+      if (routeResult) {
+        onRouteUpdate({
+          ...route,
+          routePoints: updatedPoints,
+          polylinePath: routeResult.polylinePath
+        });
+      }
+      setEditingPoint(null);
+      setEditingPointName('');
+      setShowEditLocationPreview(false);
+      setEditPreviewAddress('');
+    } else {
+      // Adding a new point
+      const point: RoutePoint = {
+        id: `point-${Date.now()}`,
+        name: newPoint.name || formattedAddress, // Use custom name or fallback to address
+        address: formattedAddress, // Always use the full formatted address
+        coordinates,
+        type: newPoint.type || 'waypoint',
+        description: newPoint.description || '',
+        estimatedTime: newPoint.estimatedTime || '',
+        notes: newPoint.notes || ''
+      };
+      const updatedPoints = [...routePoints];
+      updatedPoints.splice(insertPosition, 0, point);
+      setRoutePoints(updatedPoints);
+      const routeResult = await calculateRoute(updatedPoints);
+      if (routeResult) {
+        onRouteUpdate({
+          ...route,
+          routePoints: updatedPoints,
+          polylinePath: routeResult.polylinePath
+        });
+      }
+      setNewPoint({
+        name: '',
+        type: 'waypoint',
+        description: '',
+        estimatedTime: '',
+        notes: ''
+      });
+      setShowInsertOptions(false);
+      setShowLocationPreview(false);
+      setPreviewAddress('');
+    }
+    setIsCalculating(false);
+  };
+
+  const handleLocationPreviewCancel = () => {
+    setShowLocationPreview(false);
+    setPreviewAddress('');
+    setShowEditLocationPreview(false);
+    setEditPreviewAddress('');
+  };
+
   return (
     <div className="space-y-6">
       {/* Map Display */}
@@ -259,7 +363,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
           </h3>
           {isEditing && (
             <div className="text-sm text-gray-600">
-              Distance: {route.distance} miles | Duration: {route.estimatedDuration} hours
+              Distance: {computedDistance.toFixed(1)} miles | Walking Time: {computedWalkingTime} hours
             </div>
           )}
         </div>
@@ -305,13 +409,23 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Name/Address</label>
+                <label className="block text-sm font-medium text-gray-700">Display Name</label>
                 <input
                   type="text"
                   value={newPoint.name}
                   onChange={(e) => setNewPoint({ ...newPoint, name: e.target.value })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  placeholder="Enter address or location name"
+                  placeholder="Short name (optional)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Address</label>
+                <input
+                  type="text"
+                  value={previewAddress}
+                  onChange={(e) => setPreviewAddress(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  placeholder="Enter full address"
                 />
               </div>
               <div>
@@ -338,7 +452,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
               <div className="flex items-end">
                 <button
                   onClick={handleAddPoint}
-                  disabled={!newPoint.name || isCalculating}
+                  disabled={!previewAddress || isCalculating}
                   className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-1 text-sm"
                 >
                   <Plus className="h-4 w-4" />
@@ -368,13 +482,37 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Name</label>
-                      <input
-                        id={`event-title-${point.id}`}
-                        type="text"
-                        defaultValue={editingPoint.name}
-                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      />
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700">Display Name</label>
+                        <input
+                          id={`event-title-${point.id}`}
+                          type="text"
+                          defaultValue={editingPoint.name}
+                          onChange={(e) => setEditingPointName(e.target.value)}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          placeholder="Short name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700">Address</label>
+                        <input
+                          type="text"
+                          value={editPreviewAddress || editingPoint.address || editingPoint.name}
+                          onChange={(e) => setEditPreviewAddress(e.target.value)}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          placeholder="Full address"
+                        />
+                        {editingPoint && editingPoint.id === point.id && (
+                          <LocationPreview
+                            address={editPreviewAddress || editingPoint.address || editingPoint.name || ''}
+                            onLocationSelect={handleLocationSelect}
+                            onCancel={handleLocationPreviewCancel}
+                            isVisible={showEditLocationPreview && editingPoint.id === point.id}
+                          />
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Type</label>
@@ -437,6 +575,9 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
                         </span>
                         <span className="text-sm text-gray-500">#{index + 1}</span>
                       </div>
+                      {point.address && point.address !== point.name && (
+                        <p className="text-sm text-gray-600 mt-1">{point.address}</p>
+                      )}
                       {point.description && (
                         <p className="text-sm text-gray-600 mt-1">{point.description}</p>
                       )}
@@ -477,6 +618,13 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, isEditi
           ))}
         </div>
       </div>
+
+      <LocationPreview
+        address={previewAddress}
+        onLocationSelect={handleLocationSelect}
+        onCancel={handleLocationPreviewCancel}
+        isVisible={showLocationPreview}
+      />
     </div>
   );
 };

@@ -1,14 +1,71 @@
-import { MarchData } from '../types';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const fs = require('fs').promises;
+const path = require('path');
+const { 
+  authenticateToken, 
+  requireRole, 
+  login, 
+  validateToken, 
+  refreshToken, 
+  logout 
+} = require('./auth');
 
-export const sampleMarchData: MarchData = {
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(helmet());
+app.use(cors());
+app.use(morgan('combined'));
+app.use(express.json({ limit: '10mb' }));
+
+// Data file path
+const DATA_FILE = path.join(__dirname, 'data', 'march-data.json');
+
+// Ensure data directory exists
+async function ensureDataDirectory() {
+  const dataDir = path.dirname(DATA_FILE);
+  try {
+    await fs.access(dataDir);
+  } catch {
+    await fs.mkdir(dataDir, { recursive: true });
+  }
+}
+
+// Load data from file
+async function loadData() {
+  try {
+    await ensureDataDirectory();
+    const data = await fs.readFile(DATA_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // File doesn't exist, return null
+      return null;
+    }
+    throw error;
+  }
+}
+
+// Save data to file
+async function saveData(data) {
+  await ensureDataDirectory();
+  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+// Sample data (fallback)
+const sampleData = {
   title: "Massachusetts Unity March",
   description: "A 3-day march across eastern Massachusetts to promote community solidarity and social justice awareness.",
   startDate: "2024-06-15",
   endDate: "2024-06-17",
   mapSettings: {
-    googleMapsApiKey: (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: "",
     defaultZoom: 10,
-    mapCenter: { lat: 42.3601, lng: -71.0589 } // Boston
+    mapCenter: { lat: 42.3601, lng: -71.0589 }
   },
   days: [
     {
@@ -208,20 +265,20 @@ export const sampleMarchData: MarchData = {
       breakfast: {
         time: "7:00 AM",
         location: "Framingham State University",
-        description: "Final march breakfast",
-        providedBy: "Framingham State University Dining Services"
+        description: "Breakfast at university dining hall",
+        providedBy: "Framingham State University"
       },
       lunch: {
         time: "12:00 PM",
         location: "Marlborough City Hall",
-        description: "Lunch at Marlborough City Hall plaza",
-        providedBy: "Marlborough Community Groups"
+        description: "Lunch provided by local businesses",
+        providedBy: "Marlborough Chamber of Commerce"
       },
       dinner: {
         time: "6:00 PM",
         location: "Worcester City Hall",
-        description: "Victory dinner and celebration",
-        providedBy: "Worcester Community Organizations"
+        description: "Closing celebration dinner",
+        providedBy: "Worcester Community Foundation"
       },
       specialEvents: [
         {
@@ -229,61 +286,179 @@ export const sampleMarchData: MarchData = {
           title: "Closing Ceremony",
           time: "7:00 PM",
           location: "Worcester City Hall",
-          description: "Final rally and closing ceremony with community leaders",
+          description: "Closing ceremony with community leaders and march participants",
           organizer: "March Organizing Committee"
         }
       ],
       marchers: ["marcher-1", "marcher-2", "marcher-3"],
-      partnerOrganizations: ["org-1", "org-2"]
+      partnerOrganizations: ["org-1", "org-2", "org-3"]
     }
   ],
   marchers: [
     {
       id: "marcher-1",
-      name: "Sarah Chen",
-      email: "sarah.chen@example.com",
-      phone: "617-555-0101",
-      emergencyContact: "David Chen (617-555-0102)",
+      name: "Sarah Johnson",
+      email: "sarah.johnson@email.com",
+      phone: "555-0101",
+      emergencyContact: "John Johnson - 555-0102",
       dietaryRestrictions: "Vegetarian",
-      notes: "Team leader, experienced marcher"
+      notes: "Experienced marcher, team leader",
+      marchingDays: ["day-1", "day-2", "day-3"]
     },
     {
       id: "marcher-2",
-      name: "Marcus Rodriguez",
-      email: "marcus.rodriguez@example.com",
-      phone: "617-555-0103",
-      emergencyContact: "Maria Rodriguez (617-555-0104)",
+      name: "Michael Chen",
+      email: "michael.chen@email.com",
+      phone: "555-0201",
+      emergencyContact: "Lisa Chen - 555-0202",
       dietaryRestrictions: "None",
-      notes: "Community organizer"
+      notes: "First-time marcher, excited to participate",
+      marchingDays: ["day-1", "day-3"]
     },
     {
       id: "marcher-3",
-      name: "Aisha Johnson",
-      email: "aisha.johnson@example.com",
-      phone: "617-555-0105",
-      emergencyContact: "James Johnson (617-555-0106)",
+      name: "Maria Rodriguez",
+      email: "maria.rodriguez@email.com",
+      phone: "555-0301",
+      emergencyContact: "Carlos Rodriguez - 555-0302",
       dietaryRestrictions: "Gluten-free",
-      notes: "Student activist"
+      notes: "Community organizer, bringing local group",
+      marchingDays: ["day-2", "day-3"]
     }
   ],
   partnerOrganizations: [
     {
       id: "org-1",
-      name: "Massachusetts Community Action Network",
-      description: "Statewide network of community organizations working for social justice",
-      website: "https://mcan.org",
-      contactPerson: "Jennifer Williams",
-      contactEmail: "jennifer@mcan.org",
-      contactPhone: "617-555-0201"
+      name: "Boston Community Foundation",
+      description: "Local foundation supporting community initiatives and social justice programs",
+      website: "https://bostoncommunity.org",
+      contactPerson: "Jennifer Smith",
+      contactEmail: "jennifer@bostoncommunity.org",
+      contactPhone: "555-1001",
+      partnerDays: ["day-1", "day-3"]
     },
     {
       id: "org-2",
-      name: "Worcester Community Coalition",
-      description: "Coalition of Worcester-area community groups and activists",
+      name: "Wellesley College Student Activists",
+      description: "Student organization promoting social justice and community engagement",
+      website: "https://wellesley.edu/student-activists",
+      contactPerson: "Alex Thompson",
+      contactEmail: "athompson@wellesley.edu",
+      contactPhone: "555-2001",
+      partnerDays: ["day-2"]
+    },
+    {
+      id: "org-3",
+      name: "Worcester Community Foundation",
+      description: "Foundation supporting local community development and social programs",
       website: "https://worcestercommunity.org",
-      contactPerson: "Robert Thompson",
-      contactEmail: "robert@worcestercommunity.org",
-      contactPhone: "508-555-0202"
+      contactPerson: "David Wilson",
+      contactEmail: "dwilson@worcestercommunity.org",
+      contactPhone: "555-3001",
+      partnerDays: ["day-3"]
     }
   ]
-}; 
+};
+
+// Authentication Routes
+app.post('/auth/login', login);
+app.get('/auth/validate', authenticateToken, validateToken);
+app.post('/auth/refresh', authenticateToken, refreshToken);
+app.post('/auth/logout', authenticateToken, logout);
+
+// API Routes (protected)
+app.get('/api/march-data', async (req, res) => {
+  try {
+    const data = await loadData();
+    if (data) {
+      res.json(data);
+    } else {
+      res.json(sampleData);
+    }
+  } catch (error) {
+    console.error('Error loading march data:', error);
+    res.status(500).json({ error: 'Failed to load march data' });
+  }
+});
+
+app.post('/api/march-data', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Basic validation
+    if (!data || !Array.isArray(data.days) || !Array.isArray(data.marchers) || !Array.isArray(data.partnerOrganizations)) {
+      return res.status(400).json({ error: 'Invalid data format' });
+    }
+    
+    await saveData(data);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving march data:', error);
+    res.status(500).json({ error: 'Failed to save march data' });
+  }
+});
+
+app.get('/api/march-data/export', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const data = await loadData();
+    if (data) {
+      res.json(data);
+    } else {
+      res.json(sampleData);
+    }
+  } catch (error) {
+    console.error('Error exporting march data:', error);
+    res.status(500).json({ error: 'Failed to export march data' });
+  }
+});
+
+app.post('/api/march-data/import', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Basic validation
+    if (!data || !Array.isArray(data.days) || !Array.isArray(data.marchers) || !Array.isArray(data.partnerOrganizations)) {
+      return res.status(400).json({ error: 'Invalid data format' });
+    }
+    
+    await saveData(data);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error importing march data:', error);
+    res.status(500).json({ error: 'Failed to import march data' });
+  }
+});
+
+app.post('/api/march-data/reset', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    await saveData(sampleData);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error resetting march data:', error);
+    res.status(500).json({ error: 'Failed to reset march data' });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`March Organizer Server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`API base: http://localhost:${PORT}/api`);
+  console.log(`Auth base: http://localhost:${PORT}/auth`);
+}); 

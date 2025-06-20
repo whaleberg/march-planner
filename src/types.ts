@@ -56,8 +56,6 @@ export interface RoutePoint {
 export interface DayRoute {
   startPoint: string;
   endPoint: string;
-  distance: number; // in miles
-  estimatedDuration: number; // in hours
   terrain?: string;
   notes?: string;
   routePoints: RoutePoint[]; // Detailed route points including stops
@@ -89,4 +87,20 @@ export interface MarchData {
     defaultZoom?: number;
     mapCenter?: MapCoordinates;
   };
+}
+
+// Authentication types
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'editor' | 'viewer';
+  createdAt?: string;
+  lastLogin?: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
 } 

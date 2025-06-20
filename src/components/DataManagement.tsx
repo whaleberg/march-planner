@@ -84,7 +84,7 @@ const DataManagement: React.FC = () => {
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-sm font-medium text-green-600">Total Distance</p>
-            <p className="text-2xl font-bold text-green-900">{getTotalDistance()} mi</p>
+            <p className="text-2xl font-bold text-green-900">{getTotalDistance().toFixed(1)} mi</p>
           </div>
         </div>
       </div>

@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 import { MarchData, MarchDay, Marcher, PartnerOrganization } from '../types';
 import { sampleMarchData } from '../data/sampleData';
+import { apiService } from '../services/apiService';
+import { authService } from '../services/authService';
+import { calculateDayDistance, calculateWalkingTime } from '../utils/routeUtils';
+
+// Configuration
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const USE_LOCAL_STORAGE = (import.meta as any).env?.VITE_USE_LOCAL_STORAGE === 'true' || !API_BASE_URL;
+const AUTH_BASE_URL = (import.meta as any).env?.VITE_AUTH_API_URL || '';
+const USE_LOCAL_AUTH = (import.meta as any).env?.VITE_USE_LOCAL_AUTH === 'true' || !AUTH_BASE_URL;
 
 interface MarchContextType {
   marchData: MarchData;
@@ -20,53 +29,29 @@ interface MarchContextType {
   updateStartDate: (newStartDate: string) => void;
   getDayNumber: (dayId: string) => number;
   getTotalDistance: () => number;
+  getDayDistance: (day: MarchDay) => number;
+  getDayWalkingTime: (day: MarchDay) => number;
+  isLoading: boolean;
+  error: string | null;
+  lastSaved: string | null;
+  isUsingLocalStorage: boolean;
 }
 
 const MarchContext = createContext<MarchContextType | undefined>(undefined);
 
-export const useMarchData = () => {
+function useMarchData() {
   const context = useContext(MarchContext);
   if (context === undefined) {
     throw new Error('useMarchData must be used within a MarchProvider');
   }
   return context;
-};
+}
+
+export { useMarchData };
 
 interface MarchProviderProps {
   children: ReactNode;
 }
-
-// Local storage key
-const STORAGE_KEY = 'march-organizer-data';
-
-// Helper function to load data from localStorage
-const loadDataFromStorage = (): MarchData => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Validate that the stored data has the required structure
-      if (parsed && typeof parsed === 'object' && 
-          Array.isArray(parsed.days) && 
-          Array.isArray(parsed.marchers) && 
-          Array.isArray(parsed.partnerOrganizations)) {
-        return parsed;
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to load data from localStorage:', error);
-  }
-  return sampleMarchData;
-};
-
-// Helper function to save data to localStorage
-const saveDataToStorage = (data: MarchData): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save data to localStorage:', error);
-  }
-};
 
 // Helper function to update dates for all days based on start date
 const updateDatesFromStartDate = (days: MarchDay[], startDate: string): MarchDay[] => {
@@ -82,16 +67,87 @@ const updateDatesFromStartDate = (days: MarchDay[], startDate: string): MarchDay
 };
 
 export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
-  const [marchData, setMarchData] = useState<MarchData>(() => loadDataFromStorage());
+  const [marchData, setMarchData] = useState<MarchData>(sampleMarchData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Save data to localStorage whenever it changes
+  // Load data on component mount
   useEffect(() => {
-    saveDataToStorage(marchData);
-  }, [marchData]);
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const data = await apiService.loadMarchData();
+        setMarchData(data);
+        setError(null);
+      } catch (error) {
+        console.warn('Failed to load data, using sample data:', error);
+        setMarchData(sampleMarchData);
+        setError(error instanceof Error ? error.message : 'Failed to load data');
+      }
+      
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    };
 
-  // Calculate total distance dynamically
+    loadData();
+  }, []);
+
+  // Save data whenever it changes
+  useEffect(() => {
+    const saveData = async () => {
+      // Skip saving during initial load
+      if (isInitialLoad) {
+        return;
+      }
+      
+      try {
+        // Skip saving if using local authentication (backend doesn't recognize local tokens)
+        if (USE_LOCAL_AUTH) {
+          return;
+        }
+        
+        // Only attempt to save if user is authenticated
+        const token = authService.getAuthToken();
+        if (!token) {
+          return;
+        }
+        
+        await apiService.saveMarchData(marchData);
+        setLastSaved(new Date().toISOString());
+        setError(null);
+      } catch (error) {
+        console.error('Failed to save data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to save data. Please try again.');
+      }
+    };
+
+    // Don't save on initial load
+    if (!isLoading && !isInitialLoad) {
+      saveData();
+    }
+  }, [marchData, isLoading, isInitialLoad]);
+
+  // Calculate total distance dynamically from route points
   const getTotalDistance = (): number => {
-    return marchData.days.reduce((total, day) => total + day.route.distance, 0);
+    return marchData.days.reduce((total, day) => {
+      const dayDistance = getDayDistance(day);
+      return total + dayDistance;
+    }, 0);
+  };
+
+  // Calculate distance for a specific day from route points
+  const getDayDistance = (day: MarchDay): number => {
+    return calculateDayDistance(day.route.routePoints);
+  };
+
+  // Calculate walking time for a specific day (assuming 3 mph walking pace)
+  const getDayWalkingTime = (day: MarchDay): number => {
+    const distance = getDayDistance(day);
+    return calculateWalkingTime(distance);
   };
 
   // Get day number by position
@@ -105,10 +161,30 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
   };
 
   const updateDay = (dayId: string, updatedDay: MarchDay) => {
-    setMarchData(prev => ({
-      ...prev,
-      days: prev.days.map(day => day.id === dayId ? updatedDay : day)
-    }));
+    setMarchData(prev => {
+      const result = {
+        ...prev,
+        days: prev.days.map(day => {
+          if (day.id === dayId) {
+            // Deep copy the updated day to prevent sharing references
+            return {
+              ...updatedDay,
+              route: {
+                ...updatedDay.route,
+                routePoints: updatedDay.route.routePoints ? 
+                  updatedDay.route.routePoints.map(point => ({ ...point })) : []
+              },
+              specialEvents: updatedDay.specialEvents ? 
+                updatedDay.specialEvents.map(event => ({ ...event })) : [],
+              marchers: Array.isArray(updatedDay.marchers) ? [...updatedDay.marchers] : [],
+              partnerOrganizations: Array.isArray(updatedDay.partnerOrganizations) ? [...updatedDay.partnerOrganizations] : []
+            };
+          }
+          return day;
+        })
+      };
+      return result;
+    });
   };
 
   const updateMarcher = (marcherId: string, updatedMarcher: Marcher) => {
@@ -252,28 +328,45 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     });
   };
 
-  const resetToSampleData = () => {
+  const resetToSampleData = async () => {
     if (window.confirm('Are you sure you want to reset all data to the sample data? This will delete all your current data.')) {
-      setMarchData(sampleMarchData);
+      try {
+        await apiService.resetMarchData();
+        setMarchData(sampleMarchData);
+        setError(null);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to reset data. Please try again.');
+      }
     }
   };
 
-  const exportData = () => {
-    const dataStr = JSON.stringify(marchData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `march-organizer-data-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const exportData = async () => {
+    try {
+      const data = await apiService.exportMarchData();
+      const dataStr = JSON.stringify(data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `march-organizer-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to export data. Please try again.');
+    }
   };
 
-  const importData = (data: MarchData) => {
+  const importData = async (data: MarchData) => {
     if (window.confirm('Are you sure you want to import this data? This will replace all your current data.')) {
-      setMarchData(data);
+      try {
+        await apiService.importMarchData(data);
+        setMarchData(data);
+        setError(null);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to import data. Please try again.');
+      }
     }
   };
 
@@ -294,7 +387,13 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     importData,
     updateStartDate,
     getDayNumber,
-    getTotalDistance
+    getTotalDistance,
+    getDayDistance,
+    getDayWalkingTime,
+    isLoading,
+    error,
+    lastSaved,
+    isUsingLocalStorage: USE_LOCAL_STORAGE
   };
 
   return (
