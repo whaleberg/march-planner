@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapCoordinates, RoutePoint } from '../types';
-import { createMap, addRouteToMap, fitMapToBounds } from '../services/mapsService';
+import { createMap, addRouteToMap, fitMapToBounds, initializeGoogleMaps } from '../services/mapsService';
 import { Loader, MapPin } from 'lucide-react';
 
 interface MapProps {
@@ -57,7 +57,7 @@ const Map: React.FC<MapProps> = ({
           return;
         }
         
-        const newMap = createMap(mapRef.current, center, zoom);
+        const newMap = await createMap(mapRef.current, center, zoom);
         setMap(newMap);
 
         // Add click listener if provided
@@ -74,9 +74,19 @@ const Map: React.FC<MapProps> = ({
 
         setIsLoading(false);
       } catch (err) {
-        setError('Failed to load map');
-        setIsLoading(false);
         console.error('Map loading error:', err);
+        if (err instanceof Error) {
+          if (err.message.includes('API key is missing')) {
+            setError('Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your .env file.');
+          } else if (err.message.includes('Invalid Google Maps API key')) {
+            setError('Invalid Google Maps API key. Please check your VITE_GOOGLE_MAPS_API_KEY in the .env file.');
+          } else {
+            setError('Failed to load map. Please check your internet connection and Google Maps API key.');
+          }
+        } else {
+          setError('Failed to load map');
+        }
+        setIsLoading(false);
       }
     };
 
@@ -86,73 +96,88 @@ const Map: React.FC<MapProps> = ({
   useEffect(() => {
     if (!map || routePoints.length === 0) return;
 
-    // Clear existing markers and polylines
-    markers.forEach(marker => marker.setMap(null));
-    polylines.forEach(polyline => polyline.setMap(null));
-    
-    // Add new route and markers
-    const newMarkers = addRouteToMap(map, routePoints, polylinePath);
-    setMarkers(newMarkers);
-
-    // Create interactive polylines if we have polyline interaction handlers
-    if (onPolylineHover || onPolylineClick) {
-      const newPolylines: google.maps.Polyline[] = [];
+    const updateMap = async () => {
+      // Clear existing markers and polylines
+      markers.forEach(marker => marker.setMap(null));
+      polylines.forEach(polyline => polyline.setMap(null));
       
-      // Create polylines between consecutive points
-      for (let i = 0; i < routePoints.length - 1; i++) {
-        const startPoint = routePoints[i];
-        const endPoint = routePoints[i + 1];
+      // Add new route and markers
+      const newMarkers = await addRouteToMap(map, routePoints, polylinePath);
+      setMarkers(newMarkers);
+
+      // Create interactive polylines if we have polyline interaction handlers
+      if (onPolylineHover || onPolylineClick) {
+        const newPolylines: google.maps.Polyline[] = [];
         
-        const polyline = new google.maps.Polyline({
-          path: [
-            { lat: startPoint.coordinates.lat, lng: startPoint.coordinates.lng },
-            { lat: endPoint.coordinates.lat, lng: endPoint.coordinates.lng }
-          ],
-          geodesic: true,
-          strokeColor: '#FF0000',
-          strokeOpacity: 0.7,
-          strokeWeight: 4,
-          map
-        });
+        // Ensure Google Maps is loaded before creating polylines
+        const initializePolylines = async () => {
+          try {
+            const google = await initializeGoogleMaps();
+            
+            // Create polylines between consecutive points
+            for (let i = 0; i < routePoints.length - 1; i++) {
+              const startPoint = routePoints[i];
+              const endPoint = routePoints[i + 1];
+              
+              const polyline = new google.maps.Polyline({
+                path: [
+                  { lat: startPoint.coordinates.lat, lng: startPoint.coordinates.lng },
+                  { lat: endPoint.coordinates.lat, lng: endPoint.coordinates.lng }
+                ],
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.7,
+                strokeWeight: 4,
+                map
+              });
 
-        // Add hover events
-        if (onPolylineHover) {
-          polyline.addListener('mouseover', () => {
-            polyline.setOptions({
-              strokeColor: '#FF6B35',
-              strokeOpacity: 1.0,
-              strokeWeight: 6
-            });
-            onPolylineHover(startPoint, endPoint, i);
-          });
-        }
+              // Add hover events
+              if (onPolylineHover) {
+                polyline.addListener('mouseover', () => {
+                  polyline.setOptions({
+                    strokeColor: '#FF6B35',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 6
+                  });
+                  onPolylineHover(startPoint, endPoint, i);
+                });
+              }
 
-        if (onPolylineLeave) {
-          polyline.addListener('mouseout', () => {
-            polyline.setOptions({
-              strokeColor: '#FF0000',
-              strokeOpacity: 0.7,
-              strokeWeight: 4
-            });
-            onPolylineLeave();
-          });
-        }
+              if (onPolylineLeave) {
+                polyline.addListener('mouseout', () => {
+                  polyline.setOptions({
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.7,
+                    strokeWeight: 4
+                  });
+                  onPolylineLeave();
+                });
+              }
 
-        // Add click events
-        if (onPolylineClick) {
-          polyline.addListener('click', () => {
-            onPolylineClick(startPoint, endPoint, i);
-          });
-        }
+              // Add click events
+              if (onPolylineClick) {
+                polyline.addListener('click', () => {
+                  onPolylineClick(startPoint, endPoint, i);
+                });
+              }
 
-        newPolylines.push(polyline);
+              newPolylines.push(polyline);
+            }
+            
+            setPolylines(newPolylines);
+          } catch (error) {
+            console.error('Error creating polylines:', error);
+          }
+        };
+        
+        initializePolylines();
       }
-      
-      setPolylines(newPolylines);
-    }
 
-    // Fit map to show all route points
-    fitMapToBounds(map, routePoints);
+      // Fit map to show all route points
+      await fitMapToBounds(map, routePoints);
+    };
+
+    updateMap();
   }, [map, routePoints, polylinePath, onPolylineHover, onPolylineClick, onPolylineLeave]);
 
   if (error) {

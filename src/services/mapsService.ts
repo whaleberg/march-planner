@@ -12,6 +12,10 @@ export const initializeGoogleMaps = async (): Promise<typeof google> => {
     return window.google;
   }
 
+  if (!GOOGLE_MAPS_API_KEY) {
+    throw new Error('Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your .env file.');
+  }
+
   if (!loader) {
     loader = new Loader({
       apiKey: GOOGLE_MAPS_API_KEY,
@@ -26,6 +30,9 @@ export const initializeGoogleMaps = async (): Promise<typeof google> => {
     return google;
   } catch (error) {
     console.error('Failed to load Google Maps API:', error);
+    if (error instanceof Error && error.message.includes('API key')) {
+      throw new Error('Invalid Google Maps API key. Please check your VITE_GOOGLE_MAPS_API_KEY in the .env file.');
+    }
     throw error;
   }
 };
@@ -154,11 +161,13 @@ export const calculateRoute = async (
   }
 };
 
-export const createMap = (
+export const createMap = async (
   element: HTMLElement,
   center: MapCoordinates,
   zoom: number = 12
-): google.maps.Map => {
+): Promise<google.maps.Map> => {
+  const google = await initializeGoogleMaps();
+  
   return new google.maps.Map(element, {
     center: { lat: center.lat, lng: center.lng },
     zoom,
@@ -173,11 +182,12 @@ export const createMap = (
   });
 };
 
-export const addRouteToMap = (
+export const addRouteToMap = async (
   map: google.maps.Map,
   routePoints: RoutePoint[],
   polylinePath?: string
-): google.maps.Marker[] => {
+): Promise<google.maps.Marker[]> => {
+  const google = await initializeGoogleMaps();
   const markers: google.maps.Marker[] = [];
   
   // Add markers for each route point
@@ -251,12 +261,13 @@ const getMarkerColor = (type: RoutePoint['type']): string => {
   }
 };
 
-export const fitMapToBounds = (
+export const fitMapToBounds = async (
   map: google.maps.Map,
   routePoints: RoutePoint[]
-): void => {
+): Promise<void> => {
   if (routePoints.length === 0) return;
 
+  const google = await initializeGoogleMaps();
   const bounds = new google.maps.LatLngBounds();
   routePoints.forEach(point => {
     bounds.extend({ lat: point.coordinates.lat, lng: point.coordinates.lng });

@@ -549,15 +549,16 @@ const Overview: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Safety Team</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {canEdit() ? (
-                  <span>
-                    {getTotalMedicCount()} medic{getTotalMedicCount() !== 1 ? 's' : ''} • {getTotalPeacekeeperCount()} peacekeeper{getTotalPeacekeeperCount() !== 1 ? 's' : ''}
-                  </span>
-                ) : (
-                  'Available'
-                )}
-              </p>
+              <div className="flex items-baseline space-x-4 mt-1">
+                <div className="flex items-center" title={`${getTotalMedicCount()} Medics`}>
+                  <Stethoscope className="h-6 w-6 text-red-600" />
+                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{getTotalMedicCount()}</span>
+                </div>
+                <div className="flex items-center" title={`${getTotalPeacekeeperCount()} Peacekeepers`}>
+                  <Shield className="h-6 w-6 text-blue-600" />
+                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{getTotalPeacekeeperCount()}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

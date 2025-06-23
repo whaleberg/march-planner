@@ -45,9 +45,20 @@ The app now includes Google Maps integration for visual route planning:
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set up your Google Maps API key (see above)
-4. Start the development server: `npm run dev`
-5. Open http://localhost:5173 in your browser
+3. Set up your environment variables:
+   ```bash
+   npm run setup
+   ```
+   This will create a `.env` file with the required environment variables.
+4. Get a Google Maps API key from the [Google Cloud Console](https://console.cloud.google.com/)
+5. Enable the following APIs in your Google Cloud Console:
+   - Maps JavaScript API
+   - Directions API
+   - Geocoding API
+   - Places API
+6. Update the `VITE_GOOGLE_MAPS_API_KEY` in your `.env` file with your actual API key
+7. Start the development server: `npm run dev`
+8. Open http://localhost:5173 in your browser
 
 ## Usage
 

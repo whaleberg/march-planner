@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RoutePoint, MapCoordinates, DayRoute } from '../types';
-import { geocodeAddress, calculateRoute } from '../services/mapsService';
+import { geocodeAddress, calculateRoute, initializeGoogleMaps } from '../services/mapsService';
 import Map from './Map';
 import { Plus, Edit, Trash2, Save, X, MapPin, Clock, Navigation, ChevronDown } from 'lucide-react';
 import LocationPreview from './LocationPreview';
@@ -200,16 +200,23 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
   const handleMapClick = async (coordinates: MapCoordinates) => {
     if (!isRouteEditing) return;
 
-    // Reverse geocode to get address
-    const geocoder = new google.maps.Geocoder();
-    const latlng = new google.maps.LatLng(coordinates.lat, coordinates.lng);
-    
-    geocoder.geocode({ location: latlng }, (results, status) => {
-      if (status === 'OK' && results && results[0]) {
-        const address = results[0].formatted_address;
-        setPreviewAddress(address);
-      }
-    });
+    try {
+      // Initialize Google Maps before using geocoder
+      const google = await initializeGoogleMaps();
+      
+      // Reverse geocode to get address
+      const geocoder = new google.maps.Geocoder();
+      const latlng = new google.maps.LatLng(coordinates.lat, coordinates.lng);
+      
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const address = results[0].formatted_address;
+          setPreviewAddress(address);
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing Google Maps for geocoding:', error);
+    }
   };
 
   const getInsertContext = (position: number) => {

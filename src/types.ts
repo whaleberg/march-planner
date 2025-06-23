@@ -22,6 +22,22 @@ export interface PartnerOrganization {
   partnerDays?: string[]; // Array of day IDs when this organization is partnering
 }
 
+export interface Vehicle {
+  id: string;
+  name: string;
+  description: string;
+  licensePlate: string;
+  responsiblePerson: string;
+  vehicleDays?: string[]; // Array of day IDs when this vehicle is active
+}
+
+export interface VehicleDaySchedule {
+  vehicleId: string;
+  driver: string; // ID of the marcher who is driving
+  driverContact: string;
+  notes: string;
+}
+
 export interface Meal {
   time: string;
   location: string;
