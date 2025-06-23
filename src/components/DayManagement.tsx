@@ -52,7 +52,8 @@ const DayManagement: React.FC = () => {
       },
       specialEvents: [],
       marchers: [],
-      partnerOrganizations: []
+      partnerOrganizations: [],
+      vehicleSchedules: []
     };
 
     addDay(dayData, insertPosition ?? undefined);

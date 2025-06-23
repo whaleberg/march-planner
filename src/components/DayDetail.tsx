@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { MapPin, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
 import { MarchDay, Meal, SpecialEvent } from '../types';
 import RouteEditor from './RouteEditor';
+import DayVehicleSchedule from './DayVehicleSchedule';
 
 const DayDetail: React.FC = () => {
   const { dayId } = useParams<{ dayId: string }>();
@@ -598,76 +599,16 @@ const DayDetail: React.FC = () => {
                 </button>
               )}
             </div>
-
-            {/* Add New Event Form */}
-            {isEditing && (
-              <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
-                <h3 className="font-medium text-gray-900 mb-3">Add New Event</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Title</label>
-                    <input
-                      type="text"
-                      value={newEvent.title}
-                      onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      placeholder="Event title"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Time</label>
-                    <input
-                      type="text"
-                      value={newEvent.time}
-                      onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      placeholder="e.g., 7:00 PM"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Location</label>
-                    <input
-                      type="text"
-                      value={newEvent.location}
-                      onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      placeholder="Event location"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Organizer</label>
-                    <input
-                      type="text"
-                      value={newEvent.organizer}
-                      onChange={(e) => setNewEvent({ ...newEvent, organizer: e.target.value })}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      placeholder="Event organizer"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Description</label>
-                    <textarea
-                      value={newEvent.description}
-                      onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                      rows={2}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      placeholder="Event description"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {currentDay.specialEvents.length === 0 ? (
-              <p className="text-gray-500">No special events scheduled for this day.</p>
+              <p className="text-gray-500 text-sm">No special events scheduled for this day.</p>
             ) : (
               <div className="space-y-4">
                 {currentDay.specialEvents.map((event) => (
-                  <div key={event.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={event.id} className="border-l-4 border-green-500 pl-4">
                     {editingEventId === event.id ? (
                       // Edit mode
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700">Title</label>
                             <input
@@ -767,6 +708,11 @@ const DayDetail: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Vehicle Schedule */}
+          {canEdit() && (
+            <DayVehicleSchedule dayId={day.id} />
+          )}
         </div>
 
         {/* Sidebar */}

@@ -90,6 +90,7 @@ export interface MarchDay {
   specialEvents: SpecialEvent[];
   marchers: string[]; // Array of marcher IDs
   partnerOrganizations: string[]; // Array of partner organization IDs
+  vehicleSchedules: VehicleDaySchedule[]; // Array of vehicle schedules for this day
   dailyOrganizer?: {
     name: string;
     email: string;
@@ -117,6 +118,7 @@ export interface MarchData {
   days: MarchDay[];
   marchers: Marcher[];
   partnerOrganizations: PartnerOrganization[];
+  vehicles: Vehicle[]; // Array of vehicles
   mapSettings?: {
     googleMapsApiKey?: string;
     defaultZoom?: number;
@@ -138,4 +140,9 @@ export interface User {
 export interface LoginCredentials {
   username: string;
   password: string;
-} 
+}
+
+// View mode types for scheduling components
+export type MarcherViewMode = 'by-day' | 'by-marcher';
+export type OrganizationViewMode = 'by-day' | 'by-organization';
+export type VehicleViewMode = 'by-day' | 'by-vehicle'; 

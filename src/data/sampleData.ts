@@ -98,6 +98,14 @@ export const sampleMarchData: MarchData = {
       ],
       marchers: ["marcher-1", "marcher-2"],
       partnerOrganizations: ["org-1"],
+      vehicleSchedules: [
+        {
+          vehicleId: "vehicle-1",
+          driver: "marcher-1",
+          driverContact: "617-555-0101",
+          notes: "Support vehicle for supplies and equipment"
+        }
+      ],
       dailyOrganizer: {
         name: "Jennifer Martinez",
         email: "jennifer.martinez@march.org",
@@ -179,6 +187,20 @@ export const sampleMarchData: MarchData = {
       ],
       marchers: ["marcher-1", "marcher-3"],
       partnerOrganizations: ["org-2"],
+      vehicleSchedules: [
+        {
+          vehicleId: "vehicle-1",
+          driver: "marcher-3",
+          driverContact: "617-555-0105",
+          notes: "Support vehicle for supplies and equipment"
+        },
+        {
+          vehicleId: "vehicle-2",
+          driver: "marcher-1",
+          driverContact: "617-555-0101",
+          notes: "Medical support vehicle"
+        }
+      ],
       dailyOrganizer: {
         name: "Michael Thompson",
         email: "michael.thompson@march.org",
@@ -263,6 +285,26 @@ export const sampleMarchData: MarchData = {
       ],
       marchers: ["marcher-1", "marcher-2", "marcher-3"],
       partnerOrganizations: ["org-1", "org-2"],
+      vehicleSchedules: [
+        {
+          vehicleId: "vehicle-1",
+          driver: "marcher-2",
+          driverContact: "617-555-0103",
+          notes: "Support vehicle for supplies and equipment"
+        },
+        {
+          vehicleId: "vehicle-2",
+          driver: "marcher-3",
+          driverContact: "617-555-0105",
+          notes: "Medical support vehicle"
+        },
+        {
+          vehicleId: "vehicle-3",
+          driver: "marcher-1",
+          driverContact: "617-555-0101",
+          notes: "Media and communications vehicle"
+        }
+      ],
       dailyOrganizer: {
         name: "Sarah Chen",
         email: "sarah.chen@march.org",
@@ -281,7 +323,8 @@ export const sampleMarchData: MarchData = {
       dietaryRestrictions: "Vegetarian",
       notes: "Team leader, experienced marcher",
       medic: true,
-      peacekeeper: true
+      peacekeeper: true,
+      marchingDays: ["day-1", "day-2", "day-3"]
     },
     {
       id: "marcher-2",
@@ -292,7 +335,8 @@ export const sampleMarchData: MarchData = {
       dietaryRestrictions: "None",
       notes: "Community organizer",
       medic: false,
-      peacekeeper: true
+      peacekeeper: true,
+      marchingDays: ["day-1", "day-3"]
     },
     {
       id: "marcher-3",
@@ -303,7 +347,8 @@ export const sampleMarchData: MarchData = {
       dietaryRestrictions: "Gluten-free",
       notes: "Student activist",
       medic: true,
-      peacekeeper: false
+      peacekeeper: false,
+      marchingDays: ["day-2", "day-3"]
     }
   ],
   partnerOrganizations: [
@@ -314,7 +359,8 @@ export const sampleMarchData: MarchData = {
       website: "https://mcan.org",
       contactPerson: "Jennifer Williams",
       contactEmail: "jennifer@mcan.org",
-      contactPhone: "617-555-0201"
+      contactPhone: "617-555-0201",
+      partnerDays: ["day-1", "day-3"]
     },
     {
       id: "org-2",
@@ -323,7 +369,34 @@ export const sampleMarchData: MarchData = {
       website: "https://worcestercommunity.org",
       contactPerson: "Robert Thompson",
       contactEmail: "robert@worcestercommunity.org",
-      contactPhone: "508-555-0202"
+      contactPhone: "508-555-0202",
+      partnerDays: ["day-2", "day-3"]
+    }
+  ],
+  vehicles: [
+    {
+      id: "vehicle-1",
+      name: "Support Van",
+      description: "15-passenger van for supplies, equipment, and support personnel",
+      licensePlate: "MA-12345",
+      responsiblePerson: "Sarah Chen",
+      vehicleDays: ["day-1", "day-2", "day-3"]
+    },
+    {
+      id: "vehicle-2",
+      name: "Medical Support Vehicle",
+      description: "SUV equipped with first aid supplies and medical equipment",
+      licensePlate: "MA-67890",
+      responsiblePerson: "Aisha Johnson",
+      vehicleDays: ["day-2", "day-3"]
+    },
+    {
+      id: "vehicle-3",
+      name: "Media Vehicle",
+      description: "Van for media equipment, communications gear, and press support",
+      licensePlate: "MA-11111",
+      responsiblePerson: "Marcus Rodriguez",
+      vehicleDays: ["day-3"]
     }
   ]
 }; 

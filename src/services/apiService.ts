@@ -1,4 +1,5 @@
 import { MarchData } from '../types';
+import { sampleMarchData } from '../data/sampleData';
 import authService from './authService';
 
 // Configuration
@@ -163,11 +164,13 @@ class ApiService {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Validate that the stored data has the required structure
+        // Validate that the stored data has the required structure and is not empty
         if (parsed && typeof parsed === 'object' && 
             Array.isArray(parsed.days) && 
             Array.isArray(parsed.marchers) && 
-            Array.isArray(parsed.partnerOrganizations)) {
+            Array.isArray(parsed.partnerOrganizations) &&
+            Array.isArray(parsed.vehicles) &&
+            parsed.days.length > 0) {
           return parsed;
         }
       }
@@ -175,20 +178,9 @@ class ApiService {
       console.error('Failed to load from localStorage:', error);
     }
     
-    // Return sample data if nothing is stored or invalid
-    return {
-      title: "Community Unity March",
-      description: "A march for unity.",
-      startDate: "2024-01-01",
-      endDate: "2024-01-02",
-      missionStatement: { title: '', subtitle: '', description: '' },
-      callToAction: { title: '', description: '' },
-      itineraryDescription: '',
-      mapSettings: { googleMapsApiKey: '', defaultZoom: 10, mapCenter: { lat: 0, lng: 0 } },
-      days: [],
-      marchers: [],
-      partnerOrganizations: []
-    };
+    // Return sample data if nothing is stored, invalid, or empty
+    console.log('No valid data found in localStorage, using sample data');
+    return sampleMarchData;
   }
 
   private saveToLocalStorage(data: MarchData): void {

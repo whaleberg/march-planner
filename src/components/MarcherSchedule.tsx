@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { Calendar, Users, Check, X, Stethoscope, Shield } from 'lucide-react';
+import { MarcherViewMode } from '../types';
+import MarcherScheduleByDay from './MarcherScheduleByDay';
 
 const MarcherSchedule: React.FC = () => {
   const { marchData, updateMarcher, getDayNumber } = useMarchData();
   const [selectedMarcher, setSelectedMarcher] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<MarcherViewMode>('by-day');
 
   // Handle URL parameter for pre-selecting a marcher
   useEffect(() => {
@@ -27,22 +30,12 @@ const MarcherSchedule: React.FC = () => {
     const uniqueDays = [...new Set(currentDays)];
     const dayIndex = uniqueDays.indexOf(dayId);
     
-    console.log('Toggle debug:', {
-      marcherId,
-      dayId,
-      currentDays: uniqueDays,
-      dayIndex,
-      isCurrentlyScheduled: dayIndex !== -1
-    });
-    
     if (dayIndex === -1) {
       // Add day to marcher's schedule
       updatedMarcher.marchingDays = [...uniqueDays, dayId];
-      console.log('Adding day, new schedule:', updatedMarcher.marchingDays);
     } else {
       // Remove day from marcher's schedule
       updatedMarcher.marchingDays = uniqueDays.filter(id => id !== dayId);
-      console.log('Removing day, new schedule:', updatedMarcher.marchingDays);
     }
 
     updateMarcher(marcherId, updatedMarcher);
@@ -53,14 +46,47 @@ const MarcherSchedule: React.FC = () => {
     return marcher?.marchingDays?.includes(dayId) || false;
   };
 
+  // Render the appropriate view based on viewMode
+  if (viewMode === 'by-marcher') {
+    return <MarcherScheduleByDay />;
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Calendar className="h-8 w-8 mr-3" />
-          Marcher Schedule
+          Marcher Schedule by Day
         </h1>
         <p className="text-gray-600 mt-2">Select which days each marcher will participate in the march.</p>
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white rounded-lg shadow-md p-2 inline-flex">
+          <button
+            onClick={() => setViewMode('by-day')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'by-day'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Calendar className="h-4 w-4 inline mr-2" />
+            View by Day
+          </button>
+          <button
+            onClick={() => setViewMode('by-marcher')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'by-marcher'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Users className="h-4 w-4 inline mr-2" />
+            View by Marcher
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

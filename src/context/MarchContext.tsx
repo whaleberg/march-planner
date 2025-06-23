@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { MarchData, MarchDay, Marcher, PartnerOrganization } from '../types';
+import { MarchData, MarchDay, Marcher, PartnerOrganization, Vehicle } from '../types';
 import { sampleMarchData } from '../data/sampleData';
 import { apiService } from '../services/apiService';
 import { authService } from '../services/authService';
@@ -17,11 +17,14 @@ interface MarchContextType {
   updateDay: (dayId: string, updatedDay: MarchDay) => void;
   updateMarcher: (marcherId: string, updatedMarcher: Marcher) => void;
   updatePartnerOrganization: (orgId: string, updatedOrg: PartnerOrganization) => void;
+  updateVehicle: (vehicleId: string, updatedVehicle: Vehicle) => void;
   addMarcher: (marcher: Marcher) => void;
   addPartnerOrganization: (org: PartnerOrganization) => void;
+  addVehicle: (vehicle: Vehicle) => void;
   addDay: (day: Omit<MarchDay, 'id'>, insertPosition?: number) => void;
   deleteMarcher: (marcherId: string) => void;
   deletePartnerOrganization: (orgId: string) => void;
+  deleteVehicle: (vehicleId: string) => void;
   deleteDay: (dayId: string) => void;
   resetToSampleData: () => void;
   exportData: () => void;
@@ -86,6 +89,7 @@ const migrateData = (data: any): MarchData => {
 };
 
 export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
+  // Initialize with sample data as default - this ensures the app always has data to work with
   const [marchData, setMarchData] = useState<MarchData>(migrateData(sampleMarchData));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,13 +105,22 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
       try {
         const data = await apiService.loadMarchData();
         const migratedData = migrateData(data);
-        setMarchData(migratedData);
+        
+        // Check if the loaded data is empty and fall back to sample data
+        if (!migratedData.days || migratedData.days.length === 0) {
+          console.log('Loaded data is empty, using sample data');
+          const migratedSampleData = migrateData(sampleMarchData);
+          setMarchData(migratedSampleData);
+        } else {
+          setMarchData(migratedData);
+        }
         setError(null);
       } catch (error) {
-        console.warn('Failed to load data, using sample data:', error);
+        console.warn('Failed to load data from API, using sample data:', error);
         const migratedSampleData = migrateData(sampleMarchData);
         setMarchData(migratedSampleData);
-        setError(error instanceof Error ? error.message : 'Failed to load data');
+        // Don't set this as an error since we're successfully falling back to sample data
+        setError(null);
       }
       
       setIsLoading(false);
@@ -248,6 +261,13 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     }));
   };
 
+  const updateVehicle = (vehicleId: string, updatedVehicle: Vehicle) => {
+    setMarchData(prev => ({
+      ...prev,
+      vehicles: prev.vehicles.map(vehicle => vehicle.id === vehicleId ? updatedVehicle : vehicle)
+    }));
+  };
+
   const addMarcher = (marcher: Marcher) => {
     setMarchData(prev => ({
       ...prev,
@@ -259,6 +279,13 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     setMarchData(prev => ({
       ...prev,
       partnerOrganizations: [...prev.partnerOrganizations, org]
+    }));
+  };
+
+  const addVehicle = (vehicle: Vehicle) => {
+    setMarchData(prev => ({
+      ...prev,
+      vehicles: [...prev.vehicles, vehicle]
     }));
   };
 
@@ -329,6 +356,13 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     }));
   };
 
+  const deleteVehicle = (vehicleId: string) => {
+    setMarchData(prev => ({
+      ...prev,
+      vehicles: prev.vehicles.filter(vehicle => vehicle.id !== vehicleId)
+    }));
+  };
+
   const deleteDay = (dayId: string) => {
     setMarchData(prev => {
       // Remove the day
@@ -379,7 +413,8 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     if (window.confirm('Are you sure you want to reset all data to the sample data? This will delete all your current data.')) {
       try {
         await apiService.resetMarchData();
-        setMarchData(sampleMarchData);
+        const migratedSampleData = migrateData(sampleMarchData);
+        setMarchData(migratedSampleData);
         setError(null);
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Failed to reset data. Please try again.');
@@ -423,11 +458,14 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     updateDay,
     updateMarcher,
     updatePartnerOrganization,
+    updateVehicle,
     addMarcher,
     addPartnerOrganization,
+    addVehicle,
     addDay,
     deleteMarcher,
     deletePartnerOrganization,
+    deleteVehicle,
     deleteDay,
     resetToSampleData,
     exportData,

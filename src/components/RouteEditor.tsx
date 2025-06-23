@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RoutePoint, MapCoordinates, DayRoute } from '../types';
+import { RoutePoint, MapCoordinates, DayRoute, MarchDay } from '../types';
 import { geocodeAddress, calculateRoute, initializeGoogleMaps } from '../services/mapsService';
 import Map from './Map';
 import { Plus, Edit, Trash2, Save, X, MapPin, Clock, Navigation, ChevronDown } from 'lucide-react';
@@ -36,7 +36,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Create a temporary day object for computing distance and time
-  const tempDay = {
+  const tempDay: MarchDay = {
     id: 'temp',
     date: '',
     route: { ...route, routePoints },
@@ -45,7 +45,8 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
     dinner: { time: '', location: '', description: '' },
     specialEvents: [],
     marchers: [],
-    partnerOrganizations: []
+    partnerOrganizations: [],
+    vehicleSchedules: []
   };
 
   const computedDistance = getDayDistance(tempDay);

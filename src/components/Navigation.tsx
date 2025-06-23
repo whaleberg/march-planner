@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Users, Building2, Calendar, Flag, Settings, Database, LogOut, User, Shield } from 'lucide-react';
+import { MapPin, Users, Building2, Calendar, Flag, Settings, Database, LogOut, User, Shield, Truck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navigation: React.FC = () => {
@@ -15,8 +15,10 @@ const Navigation: React.FC = () => {
   const protectedNavItems = [
     { path: '/marchers', label: 'Marchers', icon: Users, public: false },
     { path: '/organizations', label: 'Partners', icon: Building2, public: false },
+    { path: '/vehicles', label: 'Vehicles', icon: Truck, public: false },
     { path: '/marcher-schedule', label: 'Marcher Schedule', icon: Calendar, public: false },
     { path: '/org-schedule', label: 'Partner Schedule', icon: Calendar, public: false },
+    { path: '/vehicle-schedule', label: 'Vehicle Schedule', icon: Calendar, public: false },
     { path: '/day-management', label: 'Day Management', icon: Settings, public: false },
     { path: '/data-management', label: 'Data Management', icon: Database, public: false },
   ];

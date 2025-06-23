@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMarchData } from '../context/MarchContext';
 import { Calendar, Building2, Check, X } from 'lucide-react';
+import { OrganizationViewMode } from '../types';
+import OrganizationScheduleByDay from './OrganizationScheduleByDay';
 
 const OrganizationSchedule: React.FC = () => {
   const { marchData, updatePartnerOrganization, getDayNumber } = useMarchData();
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<OrganizationViewMode>('by-day');
 
   // Handle URL parameter for pre-selecting an organization
   useEffect(() => {
@@ -27,22 +30,12 @@ const OrganizationSchedule: React.FC = () => {
     const uniqueDays = [...new Set(currentDays)];
     const dayIndex = uniqueDays.indexOf(dayId);
     
-    console.log('Toggle debug:', {
-      orgId,
-      dayId,
-      currentDays: uniqueDays,
-      dayIndex,
-      isCurrentlyScheduled: dayIndex !== -1
-    });
-    
     if (dayIndex === -1) {
       // Add day to organization's schedule
       updatedOrg.partnerDays = [...uniqueDays, dayId];
-      console.log('Adding day, new schedule:', updatedOrg.partnerDays);
     } else {
       // Remove day from organization's schedule
       updatedOrg.partnerDays = uniqueDays.filter(id => id !== dayId);
-      console.log('Removing day, new schedule:', updatedOrg.partnerDays);
     }
 
     updatePartnerOrganization(orgId, updatedOrg);
@@ -53,14 +46,47 @@ const OrganizationSchedule: React.FC = () => {
     return org?.partnerDays?.includes(dayId) || false;
   };
 
+  // If view mode is by-organization, render the OrganizationScheduleByDay component
+  if (viewMode === 'by-organization') {
+    return <OrganizationScheduleByDay />;
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Calendar className="h-8 w-8 mr-3" />
-          Partner Organization Schedule
+          Partner Organization Schedule by Day
         </h1>
         <p className="text-gray-600 mt-2">Select which days each partner organization will participate in the march.</p>
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white rounded-lg shadow-md p-2 inline-flex">
+          <button
+            onClick={() => setViewMode('by-day')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'by-day'
+                ? 'bg-orange-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Calendar className="h-4 w-4 inline mr-2" />
+            View by Day
+          </button>
+          <button
+            onClick={() => setViewMode('by-organization')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'by-organization'
+                ? 'bg-orange-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Building2 className="h-4 w-4 inline mr-2" />
+            View by Organization
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -9,10 +9,12 @@ import Overview from './components/Overview';
 import DayDetail from './components/DayDetail';
 import MarchersPage from './components/MarchersPage';
 import OrganizationsPage from './components/OrganizationsPage';
+import VehiclesPage from './components/VehiclesPage';
 import MarcherSchedule from './components/MarcherSchedule';
 import OrganizationSchedule from './components/OrganizationSchedule';
 import DayManagement from './components/DayManagement';
 import DataManagement from './components/DataManagement';
+import VehicleScheduleByVehicle from './components/VehicleScheduleByVehicle';
 
 const App: React.FC = () => {
   return (
@@ -40,6 +42,22 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute requireEditor={true}>
                     <OrganizationsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/vehicles" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <VehiclesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/vehicle-schedule" 
+                element={
+                  <ProtectedRoute requireEditor={true}>
+                    <VehicleScheduleByVehicle />
                   </ProtectedRoute>
                 } 
               />
