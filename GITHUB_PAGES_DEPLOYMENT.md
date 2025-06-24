@@ -47,6 +47,10 @@ This guide explains how to deploy the March Organizer application to GitHub Page
 
 ## Step 3: Create GitHub Actions Workflow
 
+You have two options for deployment:
+
+### Option A: Modern GitHub Pages Deployment (Recommended)
+
 Create a file at `.github/workflows/deploy.yml` in your repository:
 
 ```yaml
@@ -57,6 +61,72 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build
+      env:
+        VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+      run: npm run build
+      
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+```
+
+### Option B: Traditional gh-pages Branch Deployment
+
+Create a file at `.github/workflows/deploy-gh-pages.yml` in your repository:
+
+```yaml
+name: Deploy to GitHub Pages (gh-pages branch)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -86,6 +156,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
+        force_orphan: true
 ```
 
 ## Step 4: Update Repository Settings
@@ -97,6 +168,13 @@ jobs:
 4. Click "Save"
 
 ### 4.2 Configure Pages Source
+
+#### For Option A (Modern Deployment):
+1. Go to "Settings" > "Pages"
+2. Under "Source", select "GitHub Actions"
+3. This will automatically use the workflow file we created
+
+#### For Option B (gh-pages Branch):
 1. Go to "Settings" > "Pages"
 2. Under "Source", select "Deploy from a branch"
 3. Select "gh-pages" branch and "/ (root)" folder
@@ -117,11 +195,23 @@ jobs:
 
 ## Troubleshooting
 
-### Map Not Loading
-- Check that your API key is correctly set in GitHub Secrets
-- Verify that the Maps JavaScript API is enabled in Google Cloud Console
-- Check the browser console for any error messages
-- Ensure your API key restrictions allow your GitHub Pages domain
+### Permission Denied Errors
+If you see errors like "Permission to whaleberg/march-planner.git denied to github-actions[bot]":
+
+1. **Check Repository Settings**:
+   - Go to "Settings" > "Actions" > "General"
+   - Ensure "Workflow permissions" is set to "Read and write permissions"
+   - Check "Allow GitHub Actions to create and approve pull requests"
+
+2. **Verify GitHub Pages Settings**:
+   - Go to "Settings" > "Pages"
+   - For Option A: Ensure "Source" is set to "GitHub Actions"
+   - For Option B: Ensure "Source" is set to "Deploy from a branch" with "gh-pages"
+
+3. **Check Branch Protection Rules**:
+   - Go to "Settings" > "Branches"
+   - Ensure the main branch doesn't have overly restrictive protection rules
+   - If using gh-pages branch, ensure it's not protected
 
 ### Build Failures
 - Check the GitHub Actions logs for specific error messages
@@ -132,6 +222,12 @@ jobs:
 - Make sure the secret name matches exactly: `VITE_GOOGLE_MAPS_API_KEY`
 - Verify that the environment variable is being passed to the build step
 - Check that the variable is being used correctly in the code
+
+### Map Not Loading
+- Check that your API key is correctly set in GitHub Secrets
+- Verify that the Maps JavaScript API is enabled in Google Cloud Console
+- Check the browser console for any error messages
+- Ensure your API key restrictions allow your GitHub Pages domain
 
 ## Security Notes
 
