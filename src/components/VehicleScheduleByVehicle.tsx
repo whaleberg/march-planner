@@ -33,7 +33,7 @@ const VehicleScheduleByVehicle: React.FC = () => {
   };
 
   // If view mode is by-day, render the VehicleSchedule component
-  if (viewMode === 'by-day') {
+  if (viewMode === 'by-day' as VehicleViewMode) {
     return <VehicleSchedule />;
   }
 

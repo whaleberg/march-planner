@@ -143,6 +143,7 @@ export interface LoginCredentials {
 }
 
 // View mode types for scheduling components
+export type ViewMode = 'by-day' | 'by-marcher' | 'by-organization' | 'by-vehicle';
 export type MarcherViewMode = 'by-day' | 'by-marcher';
 export type OrganizationViewMode = 'by-day' | 'by-organization';
 export type VehicleViewMode = 'by-day' | 'by-vehicle'; 

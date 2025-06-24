@@ -47,7 +47,7 @@ const OrganizationSchedule: React.FC = () => {
   };
 
   // If view mode is by-organization, render the OrganizationScheduleByDay component
-  if (viewMode === 'by-organization') {
+  if (viewMode === 'by-organization' as OrganizationViewMode) {
     return <OrganizationScheduleByDay />;
   }
 

@@ -47,7 +47,7 @@ const MarcherSchedule: React.FC = () => {
   };
 
   // Render the appropriate view based on viewMode
-  if (viewMode === 'by-marcher') {
+  if (viewMode === 'by-marcher' as MarcherViewMode) {
     return <MarcherScheduleByDay />;
   }
 
