@@ -1,0 +1,1121 @@
+{
+  "title": "Philadelphia to Washington DC March",
+  "description": "A 14-day march from Philadelphia to Washington DC to promote community solidarity and social justice awareness.",
+  "startDate": "2024-09-06",
+  "endDate": "2024-09-19",
+  "missionStatement": {
+    "title": "More than a march—a people's movement",
+    "subtitle": "Join us as we walk together from Philadelphia to Washington DC, strengthening community bonds and demonstrating our commitment to democracy.",
+    "description": "Every step counts, every voice matters. This march represents our collective commitment to building stronger, more inclusive communities across the Mid-Atlantic region."
+  },
+  "callToAction": {
+    "title": "Join the Movement",
+    "description": "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference. Together, we can create lasting change."
+  },
+  "itineraryDescription": "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard on our journey from Philadelphia to Washington DC.",
+  "mapSettings": {
+    "googleMapsApiKey": "",
+    "defaultZoom": 8,
+    "mapCenter": { "lat": 39.8283, "lng": -75.5795 }
+  },
+  "days": [
+    {
+      "id": "day-1",
+      "date": "2024-09-06",
+      "route": {
+        "startPoint": "Independence Hall",
+        "endPoint": "William Penn Landing Site",
+        "terrain": "Urban sidewalks and park paths",
+        "notes": "Opening day from historic Philadelphia to Chester",
+        "routePoints": [
+          {
+            "id": "day1-start",
+            "name": "Independence Hall",
+            "address": "520 Chestnut St, Philadelphia, PA 19106",
+            "coordinates": { "lat": 39.9489, "lng": -75.1500 },
+            "type": "start",
+            "description": "Starting point at historic Independence Hall"
+          },
+          {
+            "id": "day1-stop1",
+            "name": "The Woodlands",
+            "address": "4000 Woodland Ave, Philadelphia, PA 19104",
+            "coordinates": { "lat": 39.9500, "lng": -75.2000 },
+            "type": "stop",
+            "description": "Lunch stop at The Woodlands",
+            "estimatedTime": "11:00 AM"
+          },
+          {
+            "id": "day1-stop2",
+            "name": "Dunkin",
+            "address": "5 MacDade Blvd, Collingdale, PA 19023",
+            "coordinates": { "lat": 39.9200, "lng": -75.2800 },
+            "type": "stop",
+            "description": "Rest stop at Dunkin",
+            "estimatedTime": "1:30 PM"
+          },
+          {
+            "id": "day1-stop3",
+            "name": "Rite Aid",
+            "address": "762 Chester Pike, Prospect Park, PA 19076",
+            "coordinates": { "lat": 39.8900, "lng": -75.3200 },
+            "type": "stop",
+            "description": "Rest stop at Rite Aid",
+            "estimatedTime": "3:30 PM"
+          },
+          {
+            "id": "day1-end",
+            "name": "William Penn Landing Site",
+            "address": "100 Penn St, Chester, PA 19013",
+            "coordinates": { "lat": 39.8500, "lng": -75.3600 },
+            "type": "end",
+            "description": "End of day 1 at William Penn Landing Site"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Independence Hall",
+        "description": "Continental breakfast with coffee and pastries",
+        "providedBy": "Philadelphia Community Center"
+      },
+      "lunch": {
+        "time": "11:00 AM",
+        "location": "The Woodlands",
+        "description": "Lunch at The Woodlands",
+        "providedBy": "Local Community Groups"
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Chester Community Center",
+        "description": "Community dinner in Chester",
+        "providedBy": "Chester Community Organizations"
+      },
+      "specialEvents": [
+        {
+          "id": "event-1-1",
+          "title": "Opening Ceremony",
+          "time": "8:00 AM",
+          "location": "Independence Hall",
+          "description": "Opening ceremony with community leaders and elected officials",
+          "organizer": "March Organizing Committee"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-2",
+      "date": "2024-09-07",
+      "route": {
+        "startPoint": "CityTeam Chester",
+        "endPoint": "Tubman Garrett Riverfront Park",
+        "terrain": "Urban and suburban streets",
+        "notes": "From Chester to Wilmington",
+        "routePoints": [
+          {
+            "id": "day2-start",
+            "name": "CityTeam Chester",
+            "address": "634 Sproul St, Chester, PA 19013",
+            "coordinates": { "lat": 39.8500, "lng": -75.3600 },
+            "type": "start",
+            "description": "Starting from CityTeam Chester"
+          },
+          {
+            "id": "day2-stop1",
+            "name": "Mickey Vernon Park",
+            "address": "Market St, Marcus Hook, PA 19061",
+            "coordinates": { "lat": 39.8200, "lng": -75.4200 },
+            "type": "stop",
+            "description": "Rest stop at Mickey Vernon Park",
+            "estimatedTime": "10:30 AM"
+          },
+          {
+            "id": "day2-stop2",
+            "name": "Wawa",
+            "address": "2621 Philadelphia Pike, Claymont, DE 19703",
+            "coordinates": { "lat": 39.8000, "lng": -75.4600 },
+            "type": "stop",
+            "description": "Rest stop at Wawa",
+            "estimatedTime": "12:30 PM"
+          },
+          {
+            "id": "day2-lunch",
+            "name": "Hunter Barn",
+            "address": "2350 Lower Lot Rd, Wilmington, DE 19809",
+            "coordinates": { "lat": 39.7800, "lng": -75.4800 },
+            "type": "stop",
+            "description": "Lunch at Hunter Barn",
+            "estimatedTime": "2:00 PM"
+          },
+          {
+            "id": "day2-end",
+            "name": "Tubman Garrett Riverfront Park",
+            "address": "Rosa Parks Dr, Wilmington, DE 19801",
+            "coordinates": { "lat": 39.7500, "lng": -75.5200 },
+            "type": "end",
+            "description": "End of day 2 at Tubman Garrett Riverfront Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "CityTeam Chester",
+        "description": "Hot breakfast provided by CityTeam",
+        "providedBy": "CityTeam Chester"
+      },
+      "lunch": {
+        "time": "2:00 PM",
+        "location": "Hunter Barn",
+        "description": "Lunch at Hunter Barn",
+        "providedBy": "Local Community Groups"
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Wilmington Community Center",
+        "description": "Community dinner in Wilmington",
+        "providedBy": "Wilmington Community Organizations"
+      },
+      "specialEvents": [],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-3",
+      "date": "2024-09-08",
+      "route": {
+        "startPoint": "Tubman Garrett Riverfront Park",
+        "endPoint": "Hillside Park",
+        "terrain": "Urban sidewalks and park paths",
+        "notes": "From Wilmington to Newark, 0.3 miles without sidewalk",
+        "routePoints": [
+          {
+            "id": "day3-start",
+            "name": "Tubman Garrett Riverfront Park",
+            "address": "Rosa Parks Dr, Wilmington, DE 19801",
+            "coordinates": { "lat": 39.7500, "lng": -75.5200 },
+            "type": "start",
+            "description": "Starting from Tubman Garrett Riverfront Park"
+          },
+          {
+            "id": "day3-stop1",
+            "name": "Legal Grounds Cafe",
+            "address": "1208 Kirkwood Hwy, Elsmere, DE 19805",
+            "coordinates": { "lat": 39.7300, "lng": -75.5600 },
+            "type": "stop",
+            "description": "Coffee stop at Legal Grounds Cafe",
+            "estimatedTime": "10:00 AM"
+          },
+          {
+            "id": "day3-lunch",
+            "name": "Greenbank Park",
+            "address": "250 Greenbank Rd, Wilmington, DE 19808",
+            "coordinates": { "lat": 39.7200, "lng": -75.5800 },
+            "type": "stop",
+            "description": "Lunch at Greenbank Park",
+            "estimatedTime": "11:30 AM"
+          },
+          {
+            "id": "day3-stop2",
+            "name": "Newark Farmers Market",
+            "address": "2515 Kirkwood Hwy, Newark, DE 19711",
+            "coordinates": { "lat": 39.7000, "lng": -75.6200 },
+            "type": "stop",
+            "description": "Rest stop at Newark Farmers Market",
+            "estimatedTime": "3:00 PM"
+          },
+          {
+            "id": "day3-end",
+            "name": "Hillside Park",
+            "address": "151 Forest Ln, Newark, DE 19717",
+            "coordinates": { "lat": 39.6800, "lng": -75.6500 },
+            "type": "end",
+            "description": "End of day 3 at Hillside Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Tubman Garrett Riverfront Park",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "11:30 AM",
+        "location": "Greenbank Park",
+        "description": "Lunch at Greenbank Park",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Friendship House Newark",
+        "description": "Dinner at Friendship House Newark Empowerment Center",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-3-1",
+          "title": "Community Meet & Greet",
+          "time": "7:00 PM",
+          "location": "Friendship House Newark Empowerment Center",
+          "description": "Evening community gathering at Friendship House",
+          "organizer": "Friendship House Newark"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-4",
+      "date": "2024-09-09",
+      "route": {
+        "startPoint": "Unitarian Universalist Fellowship of Newark",
+        "endPoint": "First Baptist Church of North East",
+        "terrain": "Suburban and rural roads",
+        "notes": "From Newark to North East",
+        "routePoints": [
+          {
+            "id": "day4-start",
+            "name": "Unitarian Universalist Fellowship of Newark",
+            "address": "420 Willa Rd, Newark, DE 19711",
+            "coordinates": { "lat": 39.6800, "lng": -75.6500 },
+            "type": "start",
+            "description": "Starting from Unitarian Universalist Fellowship"
+          },
+          {
+            "id": "day4-stop1",
+            "name": "Dunkin",
+            "address": "264 Belle Hill Rd, Elkton, MD 21921",
+            "coordinates": { "lat": 39.6500, "lng": -75.7000 },
+            "type": "stop",
+            "description": "Coffee stop at Dunkin",
+            "estimatedTime": "10:00 AM"
+          },
+          {
+            "id": "day4-lunch",
+            "name": "Gilpin Manor Square",
+            "address": "405 Park Pl, Elkton, MD 21921",
+            "coordinates": { "lat": 39.6200, "lng": -75.7500 },
+            "type": "stop",
+            "description": "Lunch at Gilpin Manor Square",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day4-stop2",
+            "name": "Carroll Mart Elkton",
+            "address": "2249 E Old Philadelphia Rd, Elkton, MD 21921",
+            "coordinates": { "lat": 39.6000, "lng": -75.7800 },
+            "type": "stop",
+            "description": "Rest stop at Carroll Mart",
+            "estimatedTime": "1:30 PM"
+          },
+          {
+            "id": "day4-stop3",
+            "name": "Haiden's Coffee & Café",
+            "address": "1610 W Pulaski Hwy, Elkton, MD 21921",
+            "coordinates": { "lat": 39.5800, "lng": -75.8200 },
+            "type": "stop",
+            "description": "Afternoon coffee at Haiden's",
+            "estimatedTime": "3:30 PM"
+          },
+          {
+            "id": "day4-end",
+            "name": "First Baptist Church of North East",
+            "address": "206 Mechanics Valley Rd, North East, MD 21901",
+            "coordinates": { "lat": 39.5500, "lng": -75.8500 },
+            "type": "end",
+            "description": "End of day 4 at First Baptist Church Food Distribution Center"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Unitarian Universalist Fellowship",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Gilpin Manor Square",
+        "description": "Lunch at Gilpin Manor Square",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "First Baptist Church of North East",
+        "description": "Dinner at First Baptist Church",
+        "providedBy": ""
+      },
+      "specialEvents": [],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-5",
+      "date": "2024-09-10",
+      "route": {
+        "startPoint": "Noir Bakery & Coffee Co",
+        "endPoint": "Lower Ferry Pier",
+        "terrain": "Suburban roads and waterfront",
+        "notes": "From North East to Perryville",
+        "routePoints": [
+          {
+            "id": "day5-start",
+            "name": "Noir Bakery & Coffee Co",
+            "address": "32 S Main St Suite 11, North East, MD 21901",
+            "coordinates": { "lat": 39.5500, "lng": -75.8500 },
+            "type": "start",
+            "description": "Starting from Noir Bakery & Coffee Co"
+          },
+          {
+            "id": "day5-lunch",
+            "name": "ChristianaCare Primary Care at Perryville",
+            "address": "4853 Pulaski Hwy Ste 300, Perryville, MD 21903",
+            "coordinates": { "lat": 39.5200, "lng": -75.9000 },
+            "type": "stop",
+            "description": "Lunch stop near ChristianaCare",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day5-end",
+            "name": "Lower Ferry Pier",
+            "address": "Lower Ferry Pier, Maryland",
+            "coordinates": { "lat": 39.5000, "lng": -75.9500 },
+            "type": "end",
+            "description": "End of day 5 at Lower Ferry Pier"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Noir Bakery & Coffee Co",
+        "description": "Breakfast at Noir Bakery",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "ChristianaCare Primary Care area",
+        "description": "Lunch near ChristianaCare facility",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Lower Ferry Pier",
+        "description": "Picnic dinner at Lower Ferry Pier",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-5-1",
+          "title": "Sunset Picnic",
+          "time": "6:00 PM",
+          "location": "Lower Ferry Pier",
+          "description": "Evening picnic at the waterfront",
+          "organizer": "Community Volunteers"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-6",
+      "date": "2024-09-11",
+      "route": {
+        "startPoint": "Lower Ferry Pier",
+        "endPoint": "Aberdeen Festival Park",
+        "terrain": "Waterfront paths and suburban streets",
+        "notes": "From Perryville to Aberdeen",
+        "routePoints": [
+          {
+            "id": "day6-start",
+            "name": "Lower Ferry Pier",
+            "address": "Lower Ferry Pier, Maryland",
+            "coordinates": { "lat": 39.5000, "lng": -75.9500 },
+            "type": "start",
+            "description": "Starting from Lower Ferry Pier"
+          },
+          {
+            "id": "day6-stop1",
+            "name": "McLhinney Park",
+            "address": "811 N Adams St, Havre De Grace, MD 21078",
+            "coordinates": { "lat": 39.4800, "lng": -76.0000 },
+            "type": "stop",
+            "description": "Rest stop at McLhinney Park",
+            "estimatedTime": "10:30 AM"
+          },
+          {
+            "id": "day6-lunch",
+            "name": "Divergent Donuts",
+            "address": "2017 Pulaski Hwy Suite A & B, Havre De Grace, MD 21078",
+            "coordinates": { "lat": 39.4600, "lng": -76.0500 },
+            "type": "stop",
+            "description": "Lunch at Divergent Donuts",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day6-end",
+            "name": "Aberdeen Festival Park",
+            "address": "60 North Parke Street, Aberdeen, MD 21001",
+            "coordinates": { "lat": 39.4400, "lng": -76.1000 },
+            "type": "end",
+            "description": "End of day 6 at Aberdeen Festival Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Lower Ferry Pier",
+        "description": "Continental breakfast at the pier",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Divergent Donuts",
+        "description": "Lunch at Divergent Donuts",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Aberdeen Festival Park",
+        "description": "Picnic dinner with Harford group",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-6-1",
+          "title": "Harford Community Picnic",
+          "time": "6:00 PM",
+          "location": "Aberdeen Festival Park",
+          "description": "Community picnic with Harford group",
+          "organizer": "Harford Community Groups"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-7",
+      "date": "2024-09-12",
+      "route": {
+        "startPoint": "Aberdeen Festival Park",
+        "endPoint": "Harford Community Action Agency",
+        "terrain": "Suburban streets and highways",
+        "notes": "From Aberdeen to Joppatowne",
+        "routePoints": [
+          {
+            "id": "day7-start",
+            "name": "Aberdeen Festival Park",
+            "address": "60 North Parke Street, Aberdeen, MD 21001",
+            "coordinates": { "lat": 39.4400, "lng": -76.1000 },
+            "type": "start",
+            "description": "Starting from Aberdeen Festival Park"
+          },
+          {
+            "id": "day7-stop1",
+            "name": "Rutters",
+            "address": "1051 S Philadelphia Blvd, Aberdeen, MD 21001",
+            "coordinates": { "lat": 39.4200, "lng": -76.1200 },
+            "type": "stop",
+            "description": "Rest stop at Rutters",
+            "estimatedTime": "9:00 AM"
+          },
+          {
+            "id": "day7-stop2",
+            "name": "7-11",
+            "address": "3901 Pulaski Hwy, Abingdon, MD 21009",
+            "coordinates": { "lat": 39.4000, "lng": -76.1500 },
+            "type": "stop",
+            "description": "Rest stop at 7-11",
+            "estimatedTime": "11:00 AM"
+          },
+          {
+            "id": "day7-lunch",
+            "name": "John Smith Roadside Park",
+            "address": "U.S. Hwy 40, Abingdon, MD 21009",
+            "coordinates": { "lat": 39.3800, "lng": -76.1700 },
+            "type": "stop",
+            "description": "Lunch at John Smith Roadside Park",
+            "estimatedTime": "12:30 PM"
+          },
+          {
+            "id": "day7-stop3",
+            "name": "Wawa",
+            "address": "2200 Pulaski Hwy, Edgewood, MD 21040",
+            "coordinates": { "lat": 39.3600, "lng": -76.2000 },
+            "type": "stop",
+            "description": "Rest stop at Wawa",
+            "estimatedTime": "3:00 PM"
+          },
+          {
+            "id": "day7-end",
+            "name": "Harford Community Action Agency",
+            "address": "1321 Woodbridge Station Way B, Edgewood, MD 21040",
+            "coordinates": { "lat": 39.3400, "lng": -76.2300 },
+            "type": "end",
+            "description": "End of day 7 at Harford Community Action Agency"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Aberdeen Festival Park",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:30 PM",
+        "location": "John Smith Roadside Park",
+        "description": "Lunch at roadside park",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Harford Community Action Agency",
+        "description": "Dinner at Harford Community Action Agency",
+        "providedBy": ""
+      },
+      "specialEvents": [],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-8",
+      "date": "2024-09-13",
+      "route": {
+        "startPoint": "Harford Community Action Agency",
+        "endPoint": "Honeygo Run Regional Park and Community Center",
+        "terrain": "Suburban streets and highways",
+        "notes": "From Joppatowne to Perry Hall",
+        "routePoints": [
+          {
+            "id": "day8-start",
+            "name": "Harford Community Action Agency",
+            "address": "1321 Woodbridge Station Way B, Edgewood, MD 21040",
+            "coordinates": { "lat": 39.3400, "lng": -76.2300 },
+            "type": "start",
+            "description": "Starting from Harford Community Action Agency"
+          },
+          {
+            "id": "day8-stop1",
+            "name": "Dunkin",
+            "address": "998 Joppa Farm Rd, Joppatowne, MD 21085",
+            "coordinates": { "lat": 39.3200, "lng": -76.2500 },
+            "type": "stop",
+            "description": "Rest stop at Dunkin",
+            "estimatedTime": "9:30 AM"
+          },
+          {
+            "id": "day8-lunch",
+            "name": "Richardson's Farms",
+            "address": "5900 Ebenezer Rd, White Marsh, MD 21162",
+            "coordinates": { "lat": 39.3000, "lng": -76.4000 },
+            "type": "stop",
+            "description": "Lunch at Richardson's Farms",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day8-end",
+            "name": "Honeygo Run Regional Park and Community Center",
+            "address": "9033 Honeygo Blvd, Perry Hall, MD 21128",
+            "coordinates": { "lat": 39.4000, "lng": -76.4500 },
+            "type": "end",
+            "description": "End of day 8 at Honeygo Run Regional Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Harford Community Action Agency",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Richardson's Farms",
+        "description": "Lunch at Richardson's Farms",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Honeygo Run Regional Park",
+        "description": "Dinner at Honeygo Run Regional Park",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-8-1",
+          "title": "Go-Kart Activity",
+          "time": "4:00 PM",
+          "location": "The Go-Kart Track, 10907 Pulaski Hwy, White Marsh, MD 21162",
+          "description": "Optional go-kart activity at The Go-Kart Track",
+          "organizer": "March Organizing Committee"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-9",
+      "date": "2024-09-14",
+      "route": {
+        "startPoint": "Honeygo Run Regional Park and Community Center",
+        "endPoint": "Towson Manor Park",
+        "terrain": "Suburban streets and parks",
+        "notes": "From Perry Hall to Towson",
+        "routePoints": [
+          {
+            "id": "day9-start",
+            "name": "Honeygo Run Regional Park and Community Center",
+            "address": "9033 Honeygo Blvd, Perry Hall, MD 21128",
+            "coordinates": { "lat": 39.4000, "lng": -76.4500 },
+            "type": "start",
+            "description": "Starting from Honeygo Run Regional Park"
+          },
+          {
+            "id": "day9-stop1",
+            "name": "Helping Hand Pantry",
+            "address": "8855 Belair Rd, Nottingham, MD 21236",
+            "coordinates": { "lat": 39.3800, "lng": -76.4700 },
+            "type": "stop",
+            "description": "Rest stop at Helping Hand Pantry",
+            "estimatedTime": "9:00 AM"
+          },
+          {
+            "id": "day9-stop2",
+            "name": "Walgreens",
+            "address": "9616 Harford Rd, Baltimore, MD 21234",
+            "coordinates": { "lat": 39.3600, "lng": -76.5200 },
+            "type": "stop",
+            "description": "Rest stop at Walgreens",
+            "estimatedTime": "11:00 AM"
+          },
+          {
+            "id": "day9-lunch",
+            "name": "Ridgeleigh Community Park",
+            "address": "1770 White Oak Ave, Parkville, MD 21234",
+            "coordinates": { "lat": 39.3400, "lng": -76.5400 },
+            "type": "stop",
+            "description": "Lunch at Ridgeleigh Community Park",
+            "estimatedTime": "12:30 PM"
+          },
+          {
+            "id": "day9-end",
+            "name": "Towson Manor Park",
+            "address": "E Towsontown Blvd, Towson, MD 21286",
+            "coordinates": { "lat": 39.3200, "lng": -76.6000 },
+            "type": "end",
+            "description": "End of day 9 at Towson Manor Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Honeygo Run Regional Park",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:30 PM",
+        "location": "Ridgeleigh Community Park",
+        "description": "Lunch at Ridgeleigh Community Park",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Towson Manor Park",
+        "description": "Dinner and picnic at Towson Manor Park",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-9-1",
+          "title": "Towson Community Picnic",
+          "time": "6:00 PM",
+          "location": "Towson Manor Park",
+          "description": "Evening picnic with Towson community",
+          "organizer": "Towson Community Groups"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-10",
+      "date": "2024-09-15",
+      "route": {
+        "startPoint": "Towson Town Center",
+        "endPoint": "Baltimore City Hall",
+        "terrain": "Urban streets and city areas",
+        "notes": "From Towson to Baltimore",
+        "routePoints": [
+          {
+            "id": "day10-start",
+            "name": "Towson Town Center",
+            "address": "825 Dulaney Valley Rd, Towson, MD 21204",
+            "coordinates": { "lat": 39.3200, "lng": -76.6000 },
+            "type": "start",
+            "description": "Starting from Towson Town Center"
+          },
+          {
+            "id": "day10-stop1",
+            "name": "Sunoco Gas Station",
+            "address": "4719 York Rd, Baltimore, MD 21212",
+            "coordinates": { "lat": 39.3000, "lng": -76.6100 },
+            "type": "stop",
+            "description": "Rest stop at Sunoco Gas Station",
+            "estimatedTime": "10:00 AM"
+          },
+          {
+            "id": "day10-lunch",
+            "name": "Sherwood Gardens",
+            "address": "4310 Underwood Rd, Baltimore, MD 21218",
+            "coordinates": { "lat": 39.2800, "lng": -76.6200 },
+            "type": "stop",
+            "description": "Lunch at Sherwood Gardens (No bathroom)",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day10-stop2",
+            "name": "Enoch Pratt Free Library",
+            "address": "400 Cathedral St, Baltimore, MD 21201",
+            "coordinates": { "lat": 39.2900, "lng": -76.6100 },
+            "type": "stop",
+            "description": "Rest stop at Enoch Pratt Free Library",
+            "estimatedTime": "3:00 PM"
+          },
+          {
+            "id": "day10-end",
+            "name": "Baltimore City Hall",
+            "address": "100 Holliday St, Baltimore, MD 21202",
+            "coordinates": { "lat": 39.2900, "lng": -76.6100 },
+            "type": "end",
+            "description": "End of day 10 at Baltimore City Hall"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Towson Town Center",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Sherwood Gardens",
+        "description": "Lunch at Sherwood Gardens",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Baltimore City Hall",
+        "description": "Dinner at Baltimore City Hall",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-10-1",
+          "title": "Baltimore Rally",
+          "time": "7:00 PM",
+          "location": "Baltimore City Hall",
+          "description": "Evening rally at Baltimore City Hall",
+          "organizer": "Baltimore Community Groups"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-11",
+      "date": "2024-09-16",
+      "route": {
+        "startPoint": "Baltimore City Hall",
+        "endPoint": "Historic Ellicott",
+        "terrain": "Urban and suburban streets (3 miles no sidewalk)",
+        "notes": "From Baltimore to Ellicott City/Columbia",
+        "routePoints": [
+          {
+            "id": "day11-start",
+            "name": "Baltimore City Hall",
+            "address": "100 Holliday St, Baltimore, MD 21202",
+            "coordinates": { "lat": 39.2900, "lng": -76.6100 },
+            "type": "start",
+            "description": "Starting from Baltimore City Hall"
+          },
+          {
+            "id": "day11-stop1",
+            "name": "Three Brothers",
+            "address": "3061 Frederick Ave, Baltimore, MD 21223",
+            "coordinates": { "lat": 39.2700, "lng": -76.6300 },
+            "type": "stop",
+            "description": "Rest stop at Three Brothers",
+            "estimatedTime": "9:30 AM"
+          },
+          {
+            "id": "day11-lunch",
+            "name": "Emanuel United Methodist Church",
+            "address": "6517 Frederick Rd, Catonsville, MD 21228",
+            "coordinates": { "lat": 39.2500, "lng": -76.7000 },
+            "type": "stop",
+            "description": "Lunch at Emanuel United Methodist Church",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day11-stop2",
+            "name": "Carroll Motor Fuels - OEC",
+            "address": "64 Frederick Rd, Ellicott City, MD 21043",
+            "coordinates": { "lat": 39.2300, "lng": -76.7500 },
+            "type": "stop",
+            "description": "Rest stop at Carroll Motor Fuels",
+            "estimatedTime": "3:00 PM"
+          },
+          {
+            "id": "day11-end",
+            "name": "Historic Ellicott",
+            "address": "24 Frederick Rd, Ellicott City, MD 21043",
+            "coordinates": { "lat": 39.2200, "lng": -76.7600 },
+            "type": "end",
+            "description": "End of day 11 at Historic Ellicott"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Baltimore City Hall",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Emanuel United Methodist Church",
+        "description": "Lunch at Emanuel United Methodist Church",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Historic Ellicott",
+        "description": "Dinner at Historic Ellicott",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-11-1",
+          "title": "MICA Teach-in",
+          "time": "4:00 PM",
+          "location": "Kittamaqundi Community Church, 5410 Leaf Treader Way, Columbia, MD 21044",
+          "description": "MICA Teach-in stop and lunch",
+          "organizer": "MICA and Food and Care For All (FCFA)"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-12",
+      "date": "2024-09-17",
+      "route": {
+        "startPoint": "Centennial Park",
+        "endPoint": "Discovery Community Park",
+        "terrain": "Suburban streets and parks",
+        "notes": "From Ellicott City to Laurel",
+        "routePoints": [
+          {
+            "id": "day12-start",
+            "name": "Centennial Park",
+            "address": "10000 Clarksville Pike, Ellicott City, MD 21042",
+            "coordinates": { "lat": 39.2200, "lng": -76.7600 },
+            "type": "start",
+            "description": "Starting from Centennial Park"
+          },
+          {
+            "id": "day12-stop1",
+            "name": "The Mall in Columbia",
+            "address": "10300 Little Patuxent Pkwy, Columbia, MD 21044",
+            "coordinates": { "lat": 39.2000, "lng": -76.8000 },
+            "type": "stop",
+            "description": "Rest stop at The Mall in Columbia",
+            "estimatedTime": "9:30 AM"
+          },
+          {
+            "id": "day12-lunch",
+            "name": "Lake Elkhorn Park",
+            "address": "Parking lot, Patuxent Branch Trail, Columbia, MD 21045",
+            "coordinates": { "lat": 39.1800, "lng": -76.8500 },
+            "type": "stop",
+            "description": "Lunch at Lake Elkhorn Park",
+            "estimatedTime": "12:00 PM"
+          },
+          {
+            "id": "day12-stop2",
+            "name": "Sweet Cravers",
+            "address": "9815 Garden Ranges, Laurel, MD 20723",
+            "coordinates": { "lat": 39.1500, "lng": -76.9000 },
+            "type": "stop",
+            "description": "Rest stop at Sweet Cravers",
+            "estimatedTime": "3:00 PM"
+          },
+          {
+            "id": "day12-end",
+            "name": "Discovery Community Park",
+            "address": "Green Hill Ave & Harrison Dr, Laurel, MD 20707",
+            "coordinates": { "lat": 39.1200, "lng": -76.8500 },
+            "type": "end",
+            "description": "End of day 12 at Discovery Community Park"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Centennial Park",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "Lake Elkhorn Park",
+        "description": "Lunch at Lake Elkhorn Park",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Discovery Community Park",
+        "description": "Dinner at Discovery Community Park",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-12-1",
+          "title": "Howard County to Prince George's County Transition",
+          "time": "5:00 PM",
+          "location": "Discovery Community Park",
+          "description": "Celebration of crossing from Howard County to Prince George's County",
+          "organizer": "March Organizing Committee"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-13",
+      "date": "2024-09-18",
+      "route": {
+        "startPoint": "Discovery Community Park",
+        "endPoint": "Silver Spring",
+        "terrain": "Suburban and urban streets",
+        "notes": "From Laurel to Silver Spring",
+        "routePoints": [
+          {
+            "id": "day13-start",
+            "name": "Discovery Community Park",
+            "address": "Green Hill Ave & Harrison Dr, Laurel, MD 20707",
+            "coordinates": { "lat": 39.1200, "lng": -76.8500 },
+            "type": "start",
+            "description": "Starting from Discovery Community Park"
+          },
+          {
+            "id": "day13-end",
+            "name": "Silver Spring",
+            "address": "Silver Spring, MD",
+            "coordinates": { "lat": 38.9900, "lng": -77.0300 },
+            "type": "end",
+            "description": "End of day 13 in Silver Spring"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Discovery Community Park",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "",
+        "description": "",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Silver Spring",
+        "description": "Dinner in Silver Spring",
+        "providedBy": ""
+      },
+      "specialEvents": [],
+      "marchers": [],
+      "partnerOrganizations": []
+    },
+    {
+      "id": "day-14",
+      "date": "2024-09-19",
+      "route": {
+        "startPoint": "Silver Spring",
+        "endPoint": "Capitol Hill",
+        "terrain": "Urban streets and city areas",
+        "notes": "From Silver Spring to Capitol Hill",
+        "routePoints": [
+          {
+            "id": "day14-start",
+            "name": "Silver Spring",
+            "address": "Silver Spring, MD",
+            "coordinates": { "lat": 38.9900, "lng": -77.0300 },
+            "type": "start",
+            "description": "Starting from Silver Spring"
+          },
+          {
+            "id": "day14-end",
+            "name": "Capitol Hill",
+            "address": "Capitol Hill, Washington, DC",
+            "coordinates": { "lat": 38.8900, "lng": -77.0100 },
+            "type": "end",
+            "description": "End of march at Capitol Hill"
+          }
+        ],
+        "polylinePath": ""
+      },
+      "breakfast": {
+        "time": "7:00 AM",
+        "location": "Silver Spring",
+        "description": "Continental breakfast",
+        "providedBy": ""
+      },
+      "lunch": {
+        "time": "12:00 PM",
+        "location": "",
+        "description": "",
+        "providedBy": ""
+      },
+      "dinner": {
+        "time": "6:00 PM",
+        "location": "Capitol Hill",
+        "description": "Final dinner at Capitol Hill",
+        "providedBy": ""
+      },
+      "specialEvents": [
+        {
+          "id": "event-14-1",
+          "title": "March Completion Celebration",
+          "time": "7:00 PM",
+          "location": "Capitol Hill",
+          "description": "Final celebration marking the completion of the Philadelphia to DC march",
+          "organizer": "March Organizing Committee"
+        }
+      ],
+      "marchers": [],
+      "partnerOrganizations": []
+    }
+  ],
+  "marchers": [],
+  "partnerOrganizations": []
+} 
