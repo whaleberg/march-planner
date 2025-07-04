@@ -194,71 +194,54 @@ export const MarchProvider: React.FC<MarchProviderProps> = ({ children }) => {
     setMarchData(data);
   };
 
-  const updateDay = (dayId: string, updatedDay: MarchDay) => {
-    setMarchData(prev => {
-      const result = {
+  const updateDay = async (dayId: string, updatedDay: MarchDay) => {
+    try {
+      const patchedDay = await apiService.patchDay(dayId, updatedDay);
+      setMarchData(prev => ({
         ...prev,
-        days: prev.days.map(day => {
-          if (day.id === dayId) {
-            // Deep copy the updated day to prevent sharing references
-            return {
-              ...updatedDay,
-              route: {
-                ...updatedDay.route,
-                routePoints: updatedDay.route.routePoints ? 
-                  updatedDay.route.routePoints.map(point => ({ ...point })) : []
-              },
-              specialEvents: updatedDay.specialEvents ? 
-                updatedDay.specialEvents.map(event => ({ ...event })) : [],
-              marchers: Array.isArray(updatedDay.marchers) ? [...updatedDay.marchers] : [],
-              partnerOrganizations: Array.isArray(updatedDay.partnerOrganizations) ? [...updatedDay.partnerOrganizations] : []
-            };
+        days: prev.days.map(day => day.id === dayId ? patchedDay : day)
+      }));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to update day.');
+    }
+  };
+
+  const updateMarcher = async (marcherId: string, updatedMarcher: Marcher) => {
+    try {
+      const patchedMarcher = await apiService.patchMarcher(marcherId, updatedMarcher);
+      setMarchData(prev => {
+        // Remove march leader assignments for removed days (as before)
+        const oldMarcher = prev.marchers.find(m => m.id === marcherId);
+        const oldDays = oldMarcher?.marchingDays || [];
+        const newDays = updatedMarcher.marchingDays || [];
+        const removedDays = oldDays.filter(dayId => !newDays.includes(dayId));
+        const updatedDays = prev.days.map(day => {
+          if (removedDays.includes(day.id) && day.marchLeaderId === marcherId) {
+            return { ...day, marchLeaderId: undefined };
           }
           return day;
-        })
-      };
-      return result;
-    });
-  };
-
-  const updateMarcher = (marcherId: string, updatedMarcher: Marcher) => {
-    setMarchData(prev => {
-      const oldMarcher = prev.marchers.find(m => m.id === marcherId);
-      const oldDays = oldMarcher?.marchingDays || [];
-      const newDays = updatedMarcher.marchingDays || [];
-      
-      // Find days where the marcher was removed
-      const removedDays = oldDays.filter(dayId => !newDays.includes(dayId));
-      
-      // Update marchers
-      const updatedMarchers = prev.marchers.map(marcher => 
-        marcher.id === marcherId ? updatedMarcher : marcher
-      );
-      
-      // Update days to remove march leader assignments for removed days
-      const updatedDays = prev.days.map(day => {
-        if (removedDays.includes(day.id) && day.marchLeaderId === marcherId) {
-          return {
-            ...day,
-            marchLeaderId: undefined
-          };
-        }
-        return day;
+        });
+        return {
+          ...prev,
+          marchers: prev.marchers.map(marcher => marcher.id === marcherId ? patchedMarcher : marcher),
+          days: updatedDays
+        };
       });
-      
-      return {
-        ...prev,
-        marchers: updatedMarchers,
-        days: updatedDays
-      };
-    });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to update marcher.');
+    }
   };
 
-  const updatePartnerOrganization = (orgId: string, updatedOrg: PartnerOrganization) => {
-    setMarchData(prev => ({
-      ...prev,
-      partnerOrganizations: prev.partnerOrganizations.map(org => org.id === orgId ? updatedOrg : org)
-    }));
+  const updatePartnerOrganization = async (orgId: string, updatedOrg: PartnerOrganization) => {
+    try {
+      const patchedOrg = await apiService.patchPartnerOrganization(orgId, updatedOrg);
+      setMarchData(prev => ({
+        ...prev,
+        partnerOrganizations: prev.partnerOrganizations.map(org => org.id === orgId ? patchedOrg : org)
+      }));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to update partner organization.');
+    }
   };
 
   const updateVehicle = (vehicleId: string, updatedVehicle: Vehicle) => {

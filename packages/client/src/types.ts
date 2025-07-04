@@ -9,6 +9,8 @@ export interface Marcher {
   marchingDays?: string[]; // Array of day IDs when this marcher is participating
   medic?: boolean; // Indicates if marcher has medic training
   peacekeeper?: boolean; // Indicates if marcher has peacekeeper training
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PartnerOrganization {
@@ -20,6 +22,8 @@ export interface PartnerOrganization {
   contactEmail?: string;
   contactPhone?: string;
   partnerDays?: string[]; // Array of day IDs when this organization is partnering
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Vehicle {
@@ -71,7 +75,7 @@ export interface RoutePoint {
   notes?: string;
 }
 
-export interface DayRoute {
+export interface Route {
   startPoint: string;
   endPoint: string;
   terrain?: string;
@@ -80,10 +84,15 @@ export interface DayRoute {
   polylinePath?: string; // Google Maps encoded polyline for the route
 }
 
-export interface MarchDay {
+interface TimeStamps {
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface MarchDay extends TimeStamps {
   id: string;
   date: string;
-  route: DayRoute;
+  route: Route;
   breakfast: Meal;
   lunch: Meal;
   dinner: Meal;
@@ -96,7 +105,8 @@ export interface MarchDay {
     email: string;
     phone: string;
   };
-  marchLeaderId?: string; // ID of the marcher who is the march leader for this day
+
+  marchLeaderId?: string;
 }
 
 export interface MarchData {

@@ -1,55 +1,39 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
+import express from 'express';
+import {Request, Response, NextFunction} from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 const fs = require('fs').promises;
-const path = require('path');
-const { 
-  authenticateToken, 
-  requireRole, 
-  login, 
-  validateToken, 
-  refreshToken, 
-  logout 
-} = require('./auth');
+import path from 'path';
+import {authenticateToken, requireRole, login, validateToken, refreshToken, logout} from './auth';
+import {Day, MarchData, PartnerOrganization} from "@march-organizer/shared";
+import {Marcher} from "@march-organizer/shared";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+//helmet is a security middleware that helps protect the app from common web vulnerabilities
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
+
+//TODO figure out the right settings here
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3001', 'http://127.0.0.1:5173', 'http://127.0.0.1:3001'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'ADD'],
   // allowedHeaders: ['Content-Type', 'Authorization']
 }));
+//morgan is a logging middleware that logs the request and response to the console
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+//express.json is a middleware that parses the request body and makes it available in req.body
 app.use(express.json({ limit: '10mb' }));
 
 // Serve static files from the root directory
 app.use(express.static(path.join(__dirname, '..')));
-
-// Serve JSON files directly
-app.get('/data/:filename', (req, res) => {
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, '..', filename);
-  
-  // Only allow JSON files
-  if (!filename.endsWith('.json')) {
-    return res.status(403).json({ error: 'Only JSON files are allowed' });
-  }
-  
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error('Error serving file:', err);
-      res.status(404).json({ error: 'File not found' });
-    }
-  });
-});
 
 // Data file path
 const DATA_FILE = path.join(__dirname, 'data', 'march-data.json');
@@ -71,7 +55,7 @@ async function loadData() {
     const data = await fs.readFile(DATA_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
       // File doesn't exist, return null
       return null;
     }
@@ -80,13 +64,190 @@ async function loadData() {
 }
 
 // Save data to file
-async function saveData(data) {
+async function saveData(data: MarchData) {
   await ensureDataDirectory();
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
+
+// Authentication Routes
+app.post('/auth/login', login);
+app.get('/auth/validate', authenticateToken, validateToken);
+app.post('/auth/refresh', authenticateToken, refreshToken);
+app.post('/auth/logout', authenticateToken, logout);
+
+// API Routes (protected)
+app.get('/api/march-data', async (req, res) => {
+  try {
+    const data = await loadData();
+    if (data) {
+      res.json(data);
+    } else {
+      res.json(sampleData);
+    }
+  } catch (error) {
+    console.error('Error loading march data:', error);
+    res.status(500).json({ error: 'Failed to load march data' });
+  }
+});
+
+app.get('/api/march-data/export', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const data = await loadData();
+    if (data) {
+      res.json(data);
+    } else {
+      res.json(sampleData);
+    }
+  } catch (error) {
+    console.error('Error exporting march data:', error);
+    res.status(500).json({ error: 'Failed to export march data' });
+  }
+});
+
+app.post('/api/march-data/import', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Basic validation
+    if (!data || !Array.isArray(data.days) || !Array.isArray(data.marchers) || !Array.isArray(data.partnerOrganizations)) {
+      res.status(400).json({ error: 'Invalid data format' });
+      return;
+    }
+
+    await saveData(data);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error importing march data:', error);
+    res.status(500).json({ error: 'Failed to import march data' });
+  }
+});
+
+app.post('/api/march-data/reset', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    await saveData(sampleData);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error resetting march data:', error);
+    res.status(500).json({ error: 'Failed to reset march data' });
+  }
+});
+
+
+
+function patch() {
+// PATCH: Update a marcher by ID
+  let field = 'marchers';
+  app.patch('/api/'+field+'/:id', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+    try {
+      const id = req.params.id;
+      const updates = req.body;
+      const data = await loadData();
+      const marcherIndex = data.marchers.findIndex((m: Marcher) => m.id === id);
+      if (marcherIndex === -1) {
+        res.status(404).json({error: 'Marcher not found'});
+        return
+      }
+      const now = new Date().toISOString();
+      const prev = data.marchers[marcherIndex];
+      data.marchers[marcherIndex] = {
+        ...prev,
+        ...updates,
+        updatedAt: now,
+        createdAt: prev.createdAt || now
+      };
+      await saveData(data);
+      res.json(data.marchers[marcherIndex]);
+    } catch (error) {
+      console.error('Error updating marcher:', error);
+      res.status(500).json({error: 'Failed to update marcher'});
+    }
+  });
+}
+
+patch();
+
+// PATCH: Update a day by ID
+app.patch('/api/days/:id', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
+  try {
+    const dayId = req.params.id;
+    const updates = req.body;
+    const data = await loadData();
+    const dayIndex = data.days.findIndex((d: Day) => d.id === dayId);
+    if (dayIndex === -1) {
+      res.status(404).json({ error: 'Day not found' });
+      return;
+    }
+    const now = new Date().toISOString();
+    const prev = data.days[dayIndex];
+    data.days[dayIndex] = {
+      ...prev,
+      ...updates,
+      updatedAt: now,
+      createdAt: prev.createdAt || now
+    };
+    await saveData(data);
+    res.json(data.days[dayIndex]);
+  } catch (error) {
+    console.error('Error updating day:', error);
+    res.status(500).json({ error: 'Failed to update day' });
+  }
+});
+
+// PATCH: Update a partner organization by ID
+app.patch('/api/partner-organizations/:id', authenticateToken, requireRole(['admin', 'editor']), async (req: Request , res: Response) => {
+  try {
+    const orgId = req.params.id;
+    const updates = req.body;
+    const data = await loadData();
+    const orgIndex: number = data.partnerOrganizations.findIndex((o :PartnerOrganization) => o.id === orgId);
+    if (orgIndex === -1) {
+      res.status(404).json({ error: 'Partner organization not found' });
+      return
+    }
+    const now = new Date().toISOString();
+    const prev = data.partnerOrganizations[orgIndex];
+    data.partnerOrganizations[orgIndex] = {
+      ...prev,
+      ...updates,
+      updatedAt: now,
+      createdAt: prev.createdAt || now
+    };
+    await saveData(data);
+    res.json(data.partnerOrganizations[orgIndex]);
+  } catch (error) {
+    console.error('Error updating partner organization:', error);
+    res.status(500).json({ error: 'Failed to update partner organization' });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Error handling middleware
+app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`March Organizer Server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`API base: http://localhost:${PORT}/api`);
+  console.log(`Auth base: http://localhost:${PORT}/auth`);
+});
+
+
 // Sample data (fallback)
-const sampleData = {
+const sampleData: MarchData = {
   title: "Massachusetts Unity March",
   description: "A 3-day march across eastern Massachusetts to promote community solidarity and social justice awareness.",
   startDate: "2024-06-15",
@@ -388,106 +549,3 @@ const sampleData = {
     }
   ]
 };
-
-// Authentication Routes
-app.post('/auth/login', login);
-app.get('/auth/validate', authenticateToken, validateToken);
-app.post('/auth/refresh', authenticateToken, refreshToken);
-app.post('/auth/logout', authenticateToken, logout);
-
-// API Routes (protected)
-app.get('/api/march-data', async (req, res) => {
-  try {
-    const data = await loadData();
-    if (data) {
-      res.json(data);
-    } else {
-      res.json(sampleData);
-    }
-  } catch (error) {
-    console.error('Error loading march data:', error);
-    res.status(500).json({ error: 'Failed to load march data' });
-  }
-});
-
-app.post('/api/march-data', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const data = req.body;
-    
-    // Basic validation
-    if (!data || !Array.isArray(data.days) || !Array.isArray(data.marchers) || !Array.isArray(data.partnerOrganizations)) {
-      return res.status(400).json({ error: 'Invalid data format' });
-    }
-    
-    await saveData(data);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error saving march data:', error);
-    res.status(500).json({ error: 'Failed to save march data' });
-  }
-});
-
-app.get('/api/march-data/export', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const data = await loadData();
-    if (data) {
-      res.json(data);
-    } else {
-      res.json(sampleData);
-    }
-  } catch (error) {
-    console.error('Error exporting march data:', error);
-    res.status(500).json({ error: 'Failed to export march data' });
-  }
-});
-
-app.post('/api/march-data/import', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const data = req.body;
-    
-    // Basic validation
-    if (!data || !Array.isArray(data.days) || !Array.isArray(data.marchers) || !Array.isArray(data.partnerOrganizations)) {
-      return res.status(400).json({ error: 'Invalid data format' });
-    }
-    
-    await saveData(data);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error importing march data:', error);
-    res.status(500).json({ error: 'Failed to import march data' });
-  }
-});
-
-app.post('/api/march-data/reset', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    await saveData(sampleData);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error resetting march data:', error);
-    res.status(500).json({ error: 'Failed to reset march data' });
-  }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Unhandled error:', error);
-  res.status(500).json({ error: 'Internal server error' });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`March Organizer Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`API base: http://localhost:${PORT}/api`);
-  console.log(`Auth base: http://localhost:${PORT}/auth`);
-}); 

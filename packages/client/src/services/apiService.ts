@@ -1,4 +1,4 @@
-import { MarchData } from '../types';
+import { MarchData, MarchDay, Marcher, PartnerOrganization } from '../types';
 import { sampleMarchData } from '../data/sampleData';
 import authService from './authService';
 
@@ -156,6 +156,54 @@ class ApiService {
       console.error('Failed to reset march data:', error);
       throw error;
     }
+  }
+
+  // Incremental update: Patch a marcher
+  async patchMarcher(marcherId: string, updates: Partial<Marcher>): Promise<Marcher> {
+    const response = await fetch(`${API_BASE_URL}/marchers/${marcherId}`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to update marcher: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  // Incremental update: Patch a day
+  async patchDay(dayId: string, updates: Partial<MarchDay>): Promise<MarchDay> {
+    const response = await fetch(`${API_BASE_URL}/days/${dayId}`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to update day: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  // Incremental update: Patch a partner organization
+  async patchPartnerOrganization(orgId: string, updates: Partial<PartnerOrganization>): Promise<PartnerOrganization> {
+    const response = await fetch(`${API_BASE_URL}/partner-organizations/${orgId}`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to update partner organization: ${response.status}`);
+    }
+    return await response.json();
   }
 
   // Local storage methods (fallback)

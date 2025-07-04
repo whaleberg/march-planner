@@ -1,0 +1,14 @@
+{
+  "name": "@march-organizer/shared",
+  "version": "1.0.0",
+  "main": "dist/index.ts",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.3"
+  }
+}

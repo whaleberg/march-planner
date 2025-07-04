@@ -1,32 +1,32 @@
 import React, { useState } from 'react';
 import { useMarchData } from '../context/MarchContext';
-import { Building2, Calendar, Mail, X, Save, Clock } from 'lucide-react';
+import { Users, Calendar, Mail, Stethoscope, Shield, X, Save, Clock } from 'lucide-react';
 
-const OrganizationScheduleByDay: React.FC = () => {
-  const { marchData, updatePartnerOrganization } = useMarchData();
-  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
+const MarcherScheduleByDay: React.FC = () => {
+  const { marchData, updateMarcher } = useMarchData();
+  const [editingMarcherId, setEditingMarcherId] = useState<string | null>(null);
 
-  const handleDayToggle = (orgId: string, dayId: string) => {
-    const org = marchData.partnerOrganizations.find(o => o.id === orgId);
-    if (!org) return;
+  const handleDayToggle = async (marcherId: string, dayId: string) => {
+    const marcher = marchData.marchers.find(m => m.id === marcherId);
+    if (!marcher) return;
 
-    const currentDays = org.partnerDays || [];
+    const currentDays = marcher.marchingDays || [];
     const updatedDays = currentDays.includes(dayId)
       ? currentDays.filter(id => id !== dayId)
       : [...currentDays, dayId];
 
-    updatePartnerOrganization(orgId, {
-      ...org,
-      partnerDays: updatedDays
+    await updateMarcher(marcherId, {
+      ...marcher,
+      marchingDays: updatedDays
     });
   };
 
   const handleSave = () => {
-    setEditingOrgId(null);
+    setEditingMarcherId(null);
   };
 
   const handleCancel = () => {
-    setEditingOrgId(null);
+    setEditingMarcherId(null);
   };
 
   return (
@@ -34,36 +34,36 @@ const OrganizationScheduleByDay: React.FC = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
-          <div className="bg-gradient-to-r from-orange-600 to-red-600 p-3 rounded-full">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-full">
+            <Users className="h-8 w-8 text-white" />
           </div>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-4 patriotic-accent">Organization Schedule by Organization</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4 patriotic-accent">Marcher Schedule by Marcher</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Assign partner organizations to specific days of the march. Select which days each organization will participate.
+          Assign marchers to specific days of the march. Select which days each marcher will participate.
         </p>
       </div>
 
-      {/* Organizations List */}
+      {/* Marchers List */}
       <div className="space-y-6">
-        {marchData.partnerOrganizations.map((org) => {
-          const isEditing = editingOrgId === org.id;
+        {marchData.marchers.map((marcher) => {
+          const isEditing = editingMarcherId === marcher.id;
 
           return (
-            <div key={org.id} className="card p-6">
+            <div key={marcher.id} className="card p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center">
-                  <Building2 className="h-6 w-6 text-orange-600 mr-3" />
+                  <Users className="h-6 w-6 text-blue-600 mr-3" />
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{org.name}</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">{marcher.name}</h3>
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                       <span className="flex items-center">
                         <Mail className="h-4 w-4 mr-1" />
-                        {org.contactEmail || 'No email'}
+                        {marcher.email}
                       </span>
                       <span className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {org.partnerDays?.length || 0} day{(org.partnerDays?.length || 0) !== 1 ? 's' : ''} assigned
+                        {marcher.marchingDays?.length || 0} day{(marcher.marchingDays?.length || 0) !== 1 ? 's' : ''} assigned
                       </span>
                     </div>
                   </div>
@@ -86,8 +86,8 @@ const OrganizationScheduleByDay: React.FC = () => {
                     </>
                   ) : (
                     <button
-                      onClick={() => setEditingOrgId(org.id)}
-                      className="text-orange-600 hover:text-orange-800"
+                      onClick={() => setEditingMarcherId(marcher.id)}
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       <Clock className="h-4 w-4" />
                     </button>
@@ -95,7 +95,21 @@ const OrganizationScheduleByDay: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-gray-600 mb-4">{org.description}</p>
+              {/* Training Badges */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {marcher.medic && (
+                  <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                    <Stethoscope className="h-3 w-3 mr-1" />
+                    Medic
+                  </div>
+                )}
+                {marcher.peacekeeper && (
+                  <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Peacekeeper
+                  </div>
+                )}
+              </div>
 
               {/* Days Assignment */}
               {isEditing ? (
@@ -103,14 +117,14 @@ const OrganizationScheduleByDay: React.FC = () => {
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Assign Days</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {marchData.days.map((day, index) => {
-                      const isAssigned = org.partnerDays?.includes(day.id) || false;
+                      const isAssigned = marcher.marchingDays?.includes(day.id) || false;
                       return (
                         <label key={day.id} className="flex items-center">
                           <input
                             type="checkbox"
                             checked={isAssigned}
-                            onChange={() => handleDayToggle(org.id, day.id)}
-                            className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                            onChange={() => handleDayToggle(marcher.id, day.id)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                           <span className="ml-2 text-sm text-gray-700">
                             Day {index + 1}: {day.route.startPoint} → {day.route.endPoint}
@@ -122,9 +136,9 @@ const OrganizationScheduleByDay: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-sm text-gray-600">
-                  {org.partnerDays && org.partnerDays.length > 0 ? (
+                  {marcher.marchingDays && marcher.marchingDays.length > 0 ? (
                     <div className="space-y-1">
-                      {org.partnerDays.map((dayId) => {
+                      {marcher.marchingDays.map((dayId) => {
                         const day = marchData.days.find(d => d.id === dayId);
                         const dayNumber = marchData.days.findIndex(d => d.id === dayId) + 1;
                         return day ? (
@@ -145,15 +159,15 @@ const OrganizationScheduleByDay: React.FC = () => {
         })}
       </div>
 
-      {marchData.partnerOrganizations.length === 0 && (
+      {marchData.marchers.length === 0 && (
         <div className="text-center py-12">
-          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations yet</h3>
-          <p className="text-gray-600 mb-4">Add partner organizations first to start scheduling.</p>
+          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No marchers yet</h3>
+          <p className="text-gray-600 mb-4">Add marchers first to start scheduling.</p>
         </div>
       )}
     </div>
   );
 };
 
-export default OrganizationScheduleByDay; 
+export default MarcherScheduleByDay; 

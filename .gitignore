@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+**/node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -7,9 +7,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Build outputs
-dist/
-build/
 *.tsbuildinfo
+**/dist
 
 # Environment variables
 .env
@@ -130,21 +129,8 @@ coverage/
 *.db-journal
 
 # Server logs
-server/logs/
+packages/server/logs/
 server/*.log
-
-# Server environment files
-server/.env
-server/.env.local
-server/.env.development
-server/.env.production
-
-# Server node_modules (if using separate package.json)
-server/node_modules/
-
-# Server build outputs
-server/dist/
-server/build/
 
 # Authentication tokens and secrets
 *.key

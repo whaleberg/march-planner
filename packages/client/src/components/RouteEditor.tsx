@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RoutePoint, MapCoordinates, DayRoute, MarchDay } from '../types';
+import { RoutePoint, MapCoordinates, Route, MarchDay } from '../types';
 import { geocodeAddress, calculateRoute, initializeGoogleMaps } from '../services/mapsService';
 import Map from './Map';
 import { Plus, Edit, Trash2, Save, X, MapPin, Clock, Navigation, ChevronDown } from 'lucide-react';
@@ -7,8 +7,8 @@ import LocationPreview from './LocationPreview';
 import { useMarchData } from '../context/MarchContext';
 
 interface RouteEditorProps {
-  route: DayRoute;
-  onRouteUpdate: (updatedRoute: DayRoute) => void;
+  route: Route;
+  onRouteUpdate: (updatedRoute: Route) => void;
   ready?: boolean;
 }
 
