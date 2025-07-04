@@ -250,6 +250,16 @@ app.listen(PORT, () => {
 const sampleData: MarchData = {
   title: "Massachusetts Unity March",
   description: "A 3-day march across eastern Massachusetts to promote community solidarity and social justice awareness.",
+  missionStatement: {
+    title: "More than a march—a people's movement",
+    subtitle: "Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy.",
+    description: "Every step counts, every voice matters. This march represents our collective commitment to building stronger, more inclusive communities across Massachusetts."
+  },
+  callToAction: {
+    title: "Join the Movement",
+    description: "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference. Together, we can create lasting change."
+  },
+  itineraryDescription: "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.",
   startDate: "2024-06-15",
   endDate: "2024-06-17",
   mapSettings: {
@@ -547,5 +557,6 @@ const sampleData: MarchData = {
       contactPhone: "555-3001",
       partnerDays: ["day-3"]
     }
-  ]
+  ],
+  vehicles:[]
 };
