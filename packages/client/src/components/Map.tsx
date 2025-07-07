@@ -170,7 +170,7 @@ const Map: React.FC<MapProps> = ({
           }
         };
         
-        initializePolylines();
+        await initializePolylines();
       }
 
       // Fit map to show all route points

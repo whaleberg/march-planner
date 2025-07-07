@@ -1,15 +1,34 @@
+export interface EditableField<T> {
+    value: T;
+    revision: number;
+    modifiedAt: string;      // ISO timestamp
+    modifiedBy?: string;     // Optional: user who made the change
+}
+
+// Define base type for entities that can be related
+export interface Identifiable {
+    id: string;
+}
+
+interface Relationship<TLeft extends Identifiable, TRight extends Identifiable> {
+    leftId: string;  // ID of TLeft type entity
+    rightId: string; // ID of TRight type entity
+    type?: string;
+    metadata?: Record<string, unknown>; // Optional metadata specific to this relationship
+}
+
+
 export interface Marcher extends Identifiable {
     id: string;
-    name: string;
+    name: EditableField<string>;
     email: string;
     phone?: string;
     emergencyContact?: string;
     dietaryRestrictions?: string;
-    notes?: string;
-    marchingDays?: string[]; // Array of day IDs when this marcher is participating
-    medic?: boolean; // Indicates if marcher has medic training
+    notes: string;
+    marchingDays: string[]; // Array of day IDs when this marcher is participating
+    medic: boolean; // Indicates if marcher has medic training
     peacekeeper?: boolean; // Indicates if marcher has peacekeeper training
-    timeStamps?: TimeStamps
 }
 
 export interface PartnerOrganization extends Identifiable {

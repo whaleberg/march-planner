@@ -5,8 +5,34 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "husky install",
     "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces --parallel",
-    "type-check": "npm run type-check --workspaces"
+    "type-check": "npm run type-check --workspaces",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint --workspaces --if-present -- --fix"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "eslint-plugin-functional": "^9.0.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  },
+  "lint-staged": {
+    "packages/client/src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "packages/server/src/**/*.ts": [
+      "eslint --fix"
+    ],
+    "packages/shared/src/**/*.ts": [
+      "eslint --fix"
+    ]
   }
 }

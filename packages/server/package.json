@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.ts",
-    "dev": "ts-node-dev --respawn src/server.ts"
+    "dev": "ts-node-dev --respawn src/server.ts",
+    "lint": "eslint src --ext .ts --cache"
   },
   "dependencies": {
     "express": "^4.18.2",
