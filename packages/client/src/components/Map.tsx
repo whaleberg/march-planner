@@ -3,6 +3,7 @@ import { MapCoordinates, RoutePoint } from '../types';
 import { createMap, addRouteToMap, fitMapToBounds, initializeGoogleMaps } from '../services/mapsService';
 import { Loader, MapPin } from 'lucide-react';
 
+
 interface MapProps {
   center: MapCoordinates;
   zoom?: number;

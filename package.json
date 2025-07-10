@@ -22,7 +22,8 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "husky": "^9.1.7",
-    "lint-staged": "^16.1.2"
+    "lint-staged": "^16.1.2",
+    "typescript": "^5.8.3"
   },
   "lint-staged": {
     "packages/client/src/**/*.{ts,tsx}": [

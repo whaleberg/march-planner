@@ -1,9 +1,5 @@
 import { User, LoginCredentials } from '../types';
 
-// Configuration
-const AUTH_BASE_URL = (import.meta as any).env?.VITE_AUTH_API_URL || '';
-const USE_LOCAL_AUTH = (import.meta as any).env?.VITE_USE_LOCAL_AUTH === 'true' || !AUTH_BASE_URL;
-
 // Local storage keys
 const AUTH_KEYS = {
   USER: 'auth_user',
@@ -66,95 +62,16 @@ class AuthService {
     localStorage.setItem(AUTH_KEYS.EXPIRES, expiryDate.toISOString());
   }
 
-  // Login with credentials
+  // Login with credentials (now handled by tRPC hooks in AuthContext)
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    if (USE_LOCAL_AUTH) {
-      return this.localLogin(credentials);
-    }
-
-    try {
-      const response = await fetch(`${AUTH_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.user && data.token) {
-        this.currentUser = { ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' };
-        this.authToken = data.token;
-        this.saveToStorage({ ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' }, data.token, data.expiresIn || 3600);
-        return { success: true, user: { ...data.user, role: data.user.role as 'admin' | 'editor' | 'viewer' }, token: data.token };
-      } else {
-        return { success: false, error: data.error || 'Login failed' };
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Login failed' 
-      };
-    }
+    // This method is now deprecated - use tRPC hooks in AuthContext instead
+    throw new Error('Use tRPC hooks for login instead of this method');
   }
 
-  // Local authentication for development
-  private localLogin(credentials: LoginCredentials): AuthResponse {
-    // Simple local authentication - in production, use proper backend
-    const validUsers = [
-      {
-        id: 'admin-1',
-        username: 'admin',
-        email: 'admin@example.com',
-        role: 'admin',
-        name: 'Administrator'
-      },
-      {
-        id: 'editor-1',
-        username: 'editor',
-        email: 'editor@example.com',
-        role: 'editor',
-        name: 'Content Editor'
-      }
-    ];
 
-    const user = validUsers.find(u => 
-      u.username === credentials.username && 
-      credentials.password === 'password' // Simple password for demo
-    );
-
-    if (user) {
-      this.currentUser = { ...user, role: user.role as 'admin' | 'editor' | 'viewer' };
-      this.authToken = 'local-token-' + Date.now();
-      this.saveToStorage({ ...user, role: user.role as 'admin' | 'editor' | 'viewer' }, this.authToken, 3600);
-      return { success: true, user: { ...user, role: user.role as 'admin' | 'editor' | 'viewer' }, token: this.authToken };
-    }
-
-    return { success: false, error: 'Invalid credentials' };
-  }
 
   // Logout
   async logout(): Promise<AuthResponse> {
-    if (!USE_LOCAL_AUTH && this.authToken) {
-      try {
-        await fetch(`${AUTH_BASE_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    }
-
     this.clearStorage();
     return { success: true };
   }
@@ -174,6 +91,13 @@ class AuthService {
     return this.authToken;
   }
 
+  // Set current user and token (for use with tRPC hooks)
+  setCurrentUser(user: User, token: string): void {
+    this.currentUser = user;
+    this.authToken = token;
+    this.saveToStorage(user, token, 24 * 60 * 60); // 24 hours
+  }
+
   // Check if user has admin role
   isAdmin(): boolean {
     return this.currentUser?.role === 'admin';
@@ -189,76 +113,30 @@ class AuthService {
     return this.isEditor();
   }
 
-  // Validate token with server
+  // Validate token (now handled by tRPC hooks in AuthContext)
   async validateToken(): Promise<boolean> {
-    if (USE_LOCAL_AUTH) {
-      return this.isAuthenticated();
-    }
-
-    if (!this.authToken) {
-      return false;
-    }
-
-    try {
-      const response = await fetch(`${AUTH_BASE_URL}/auth/validate`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.authToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          this.currentUser = data.user;
-          return true;
-        }
-      }
-
-      // Token is invalid, clear storage
-      this.clearStorage();
-      return false;
-    } catch (error) {
-      console.error('Token validation error:', error);
-      this.clearStorage();
-      return false;
-    }
+    // This method is now deprecated - use tRPC hooks in AuthContext instead
+    throw new Error('Use tRPC hooks for token validation instead of this method');
   }
 
-  // Refresh token
+  // Refresh token (not implemented in current server)
   async refreshToken(): Promise<boolean> {
-    if (USE_LOCAL_AUTH) {
-      return this.isAuthenticated();
-    }
+    // For now, just validate the current token
+    return this.validateToken();
+  }
 
-    if (!this.authToken) {
-      return false;
-    }
-
-    try {
-      const response = await fetch(`${AUTH_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.authToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.token) {
-          this.authToken = data.token;
-          this.saveToStorage(this.currentUser!, data.token, data.expiresIn || 3600);
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      return false;
-    }
+  // Register new user (now handled by tRPC hooks in AuthContext)
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role?: string;
+  }): Promise<AuthResponse> {
+    // This method is now deprecated - use tRPC hooks in AuthContext instead
+    throw new Error('Use tRPC hooks for registration instead of this method');
   }
 }
 
-export const authService = new AuthService();
+const authService = new AuthService();
 export default authService; 

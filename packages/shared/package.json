@@ -1,15 +1,24 @@
 {
   "name": "@march-organizer/shared",
   "version": "1.0.0",
-  "main": "dist/index.ts",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts --cache"
+    "lint": "eslint src --ext .ts --cache",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "typescript": "^4.9.3"
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
+    "typescript": "^4.9.5"
   }
 }

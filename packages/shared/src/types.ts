@@ -1,37 +1,287 @@
-export interface EditableField<T> {
-    value: T;
-    revision: number;
-    modifiedAt: string;      // ISO timestamp
-    modifiedBy?: string;     // Optional: user who made the change
+// Shared versioned data types for tRPC architecture
+
+export interface VersionedEntity {
+  id: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  isDeleted?: boolean;
 }
 
-// Define base type for entities that can be related
-export interface Identifiable {
+export interface March extends VersionedEntity {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  missionStatement: {
+    title: string;
+    subtitle: string;
+    description: string;
+  };
+  callToAction: {
+    title: string;
+    description: string;
+  };
+  itineraryDescription: string;
+  mapSettings?: {
+    googleMapsApiKey?: string;
+    defaultZoom?: number;
+    mapCenter?: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
+export interface MarchDay extends VersionedEntity {
+  marchId: string;
+  date: string;
+  route: {
+    startPoint: string;
+    endPoint: string;
+    routePoints: Array<{
+      id: string;
+      name: string;
+      coordinates: { lat: number; lng: number };
+      type: 'start' | 'end' | 'waypoint';
+      description?: string;
+      estimatedTime?: string;
+    }>;
+  };
+  breakfast: {
+    location: string;
+    time: string;
+    description?: string;
+  };
+  lunch: {
+    location: string;
+    time: string;
+    description?: string;
+  };
+  dinner: {
+    location: string;
+    time: string;
+    description?: string;
+  };
+  specialEvents: Array<{
     id: string;
-}
-
-interface Relationship<TLeft extends Identifiable, TRight extends Identifiable> {
-    leftId: string;  // ID of TLeft type entity
-    rightId: string; // ID of TRight type entity
-    type?: string;
-    metadata?: Record<string, unknown>; // Optional metadata specific to this relationship
-}
-
-
-export interface Marcher extends Identifiable {
-    id: string;
-    name: EditableField<string>;
+    title: string;
+    description: string;
+    time: string;
+    location: string;
+  }>;
+  dailyOrganizer?: {
+    name: string;
     email: string;
+    phone: string;
+  };
+  marchLeaderId?: string;
+}
+
+export interface Marcher extends VersionedEntity {
+  name: string;
+  email: string;
+  phone?: string;
+  emergencyContact?: string;
+  dietaryRestrictions?: string;
+  notes?: string;
+  medic: boolean;
+  peacekeeper: boolean;
+}
+
+export interface PartnerOrganization extends VersionedEntity {
+  name: string;
+  description: string;
+  website?: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  logoUrl?: string;
+}
+
+export interface Vehicle extends VersionedEntity {
+  name: string;
+  type: 'van' | 'truck' | 'car' | 'bus';
+  capacity: number;
+  driver: string;
+  driverPhone: string;
+  licensePlate?: string;
+  notes?: string;
+}
+
+// Relationship objects to handle many-to-many relationships
+export interface MarcherDayAssignment extends VersionedEntity {
+  marcherId: string;
+  dayId: string;
+  marchId: string;
+  role?: 'participant' | 'organizer' | 'support';
+  notes?: string;
+}
+
+export interface OrganizationDayAssignment extends VersionedEntity {
+  organizationId: string;
+  dayId: string;
+  marchId: string;
+  role?: 'host' | 'supporter' | 'sponsor';
+  contribution?: string;
+  notes?: string;
+}
+
+export interface VehicleDaySchedule extends VersionedEntity {
+  vehicleId: string;
+  dayId: string;
+  marchId: string;
+  startTime: string;
+  endTime: string;
+  route: string;
+  purpose: string;
+  driver: string;
+  notes?: string;
+}
+
+// Query and mutation types for tRPC
+export interface QueryFilters {
+  marchId?: string;
+  dayId?: string;
+  marcherId?: string;
+  organizationId?: string;
+  vehicleId?: string;
+  includeDeleted?: boolean;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CreateEntityParams<T> {
+  data: Omit<T, 'id' | 'version' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>;
+}
+
+export interface UpdateEntityParams<T> {
+  id: string;
+  data: Partial<Omit<T, 'id' | 'version' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>>;
+}
+
+export interface DeleteEntityParams {
+  id: string;
+  softDelete?: boolean;
+}
+
+// Response types
+export interface QueryResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export interface SingleEntityResponse<T> {
+  data: T;
+  success: boolean;
+  message?: string;
+}
+
+export interface MutationResponse {
+  success: boolean;
+  message?: string;
+  id?: string;
+  version?: number;
+}
+
+// Legacy types for backward compatibility
+export interface LegacyMarchData {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  missionStatement: {
+    title: string;
+    subtitle: string;
+    description: string;
+  };
+  callToAction: {
+    title: string;
+    description: string;
+  };
+  itineraryDescription: string;
+  days: Array<{
+    id: string;
+    date: string;
+    route: {
+      startPoint: string;
+      endPoint: string;
+      routePoints: Array<{
+        id: string;
+        name: string;
+        coordinates: { lat: number; lng: number };
+        type: 'start' | 'end' | 'waypoint' | 'stop';
+        description?: string;
+        estimatedTime?: string;
+      }>;
+    };
+    breakfast: {
+      time: string;
+      location: string;
+      description: string;
+      providedBy?: string;
+      notes?: string;
+    };
+    lunch: {
+      time: string;
+      location: string;
+      description: string;
+      providedBy?: string;
+      notes?: string;
+    };
+    dinner: {
+      time: string;
+      location: string;
+      description: string;
+      providedBy?: string;
+      notes?: string;
+    };
+    specialEvents: Array<{
+      id: string;
+      title: string;
+      time: string;
+      location: string;
+      description: string;
+      organizer?: string;
+    }>;
+    marchers: string[];
+    partnerOrganizations: string[];
+    vehicleSchedules?: Array<{
+      vehicleId: string;
+      driver: string;
+      driverContact: string;
+      notes: string;
+    }>;
+    dailyOrganizer?: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+    marchLeaderId?: string;
+  }>;
+  marchers: Array<{
+    id: string;
+    name: string;
+    email?: string;
     phone?: string;
     emergencyContact?: string;
     dietaryRestrictions?: string;
-    notes: string;
-    marchingDays: string[]; // Array of day IDs when this marcher is participating
-    medic: boolean; // Indicates if marcher has medic training
-    peacekeeper?: boolean; // Indicates if marcher has peacekeeper training
-}
-
-export interface PartnerOrganization extends Identifiable {
+    notes?: string;
+    marchingDays: string[];
+    medic: boolean;
+    peacekeeper?: boolean;
+  }>;
+  partnerOrganizations: Array<{
     id: string;
     name: string;
     description: string;
@@ -39,139 +289,40 @@ export interface PartnerOrganization extends Identifiable {
     contactPerson?: string;
     contactEmail?: string;
     contactPhone?: string;
-    partnerDays?: string[]; // Array of day IDs when this organization is partnering
+    partnerDays?: string[];
     createdAt?: string;
     updatedAt?: string;
-}
-
-export interface Identifiable {
-    id: string
-    timeStamps?: TimeStamps
-}
-
-
-export interface Vehicle extends Identifiable {
+  }>;
+  vehicles: Array<{
     id: string;
     name: string;
     description: string;
     licensePlate: string;
     responsiblePerson: string;
-    vehicleDays?: string[]; // Array of day IDs when this vehicle is active
-}
-
-export interface VehicleDaySchedule {
-    vehicleId: string;
-    driver: string; // ID of the marcher who is driving
-    driverContact: string;
-    notes: string;
-}
-
-export interface Meal {
-    time: string;
-    location: string;
-    description: string;
-    providedBy?: string;
-    notes?: string;
-}
-
-export interface SpecialEvent extends Identifiable {
-    title: string;
-    time: string;
-    location: string;
-    description: string;
-    organizer?: string;
-}
-
-export interface MapCoordinates {
-    lat: number;
-    lng: number;
-}
-
-export interface RoutePoint {
-    id: string;
-    name: string;
-    coordinates: MapCoordinates;
-    address?: string;
-    type: 'start' | 'end' | 'waypoint' | 'stop';
-    description?: string;
-    estimatedTime?: string; // Time to reach this point
-    notes?: string;
-}
-
-export interface Route {
-    startPoint: string;
-    endPoint: string;
-    terrain?: string;
-    notes?: string;
-    routePoints: RoutePoint[]; // Detailed route points including stops
-    polylinePath?: string; // Google Maps encoded polyline for the route
-}
-
-interface TimeStamps {
-    createdAt?: number;
-    updatedAt?: number;
-}
-
-export interface Day extends Identifiable{
-    date: string;
-    route: Route;
-    breakfast: Meal;
-    lunch: Meal;
-    dinner: Meal;
-    specialEvents: SpecialEvent[];
-    marchers: string[]; // Array of marcher IDs
-    partnerOrganizations: string[]; // Array of partner organization IDs
-    vehicleSchedules?: VehicleDaySchedule[]; // Array of vehicle schedules for this day
-    dailyOrganizer?: {
-        name: string;
-        email: string;
-        phone: string;
+    vehicleDays?: string[];
+  }>;
+  mapSettings?: {
+    googleMapsApiKey?: string;
+    defaultZoom?: number;
+    mapCenter?: {
+      lat: number;
+      lng: number;
     };
-    // ID of the marcher who is the march leader for this day
-    marchLeaderId?: string;
-}
-
-export interface MarchData  {
-    title: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    // Editable flavor text fields
-    missionStatement: {
-        title: string;
-        subtitle: string;
-        description: string;
-    };
-    callToAction: {
-        title: string;
-        description: string;
-    };
-    itineraryDescription: string;
-    days: Day[];
-    marchers: Marcher[];
-    partnerOrganizations: PartnerOrganization[];
-    vehicles: Vehicle[]; // Array of vehicles
-    mapSettings?: {
-        googleMapsApiKey?: string;
-        defaultZoom?: number;
-        mapCenter?: MapCoordinates;
-    };
+  };
 }
 
 // Authentication types
-export interface User extends Identifiable{
-    id: string;
-    username: string;
-    email: string;
-    name: string;
-    role: 'admin' | 'editor' | 'viewer';
-    createdAt?: string;
-    lastLogin?: string;
+export interface User extends VersionedEntity {
+  username: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'editor' | 'viewer';
+  lastLogin?: string;
 }
 
 export interface LoginCredentials {
-    username: string;
-    password: string;
+  username: string;
+  password: string;
 }
 
 // View mode types for scheduling components

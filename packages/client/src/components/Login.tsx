@@ -46,17 +46,17 @@ const Login: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
+                Email
               </label>
               <input
                 id="username"
                 name="username"
-                type="text"
+                type="email"
                 required
                 value={credentials.username}
                 onChange={(e) => handleInputChange('username', e.target.value)}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 disabled={isLoading}
               />
             </div>
@@ -124,7 +124,7 @@ const Login: React.FC = () => {
 
           <div className="text-center">
             <p className="text-xs text-gray-500">
-              Demo credentials: admin/password or editor/password
+              Demo credentials: admin@marchplanner.com / admin123
             </p>
           </div>
         </form>

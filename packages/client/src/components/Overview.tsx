@@ -4,6 +4,7 @@ import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Edit, Save, X, Stethoscope, Shield } from 'lucide-react';
 import Map from './Map';
+import SummaryStats from './SummaryStats';
 import { RoutePoint, MarchDay } from '../types';
 import { getRoutePointName } from '../utils/routeUtils';
 
@@ -653,6 +654,11 @@ const Overview: React.FC = () => {
             </>
           )}
         </div>
+      </div>
+
+      {/* Summary Statistics */}
+      <div className="mb-8">
+        <SummaryStats />
       </div>
 
       {/* Route Map */}

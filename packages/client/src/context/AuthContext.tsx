@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, LoginCredentials } from '../types';
 import authService, { AuthResponse } from '../services/authService';
+import { useLogin, useVerifyToken } from '../hooks/useAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -34,46 +35,103 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // tRPC hooks
+  const loginMutation = useLogin();
+  const verifyTokenQuery = useVerifyToken();
+
   // Initialize auth state on mount
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
       
-      // Check if user is already authenticated
-      if (authService.isAuthenticated()) {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
+      try {
+        // Check if user is already authenticated
+        if (authService.isAuthenticated()) {
+          const token = authService.getAuthToken();
+          if (token) {
+            // Use tRPC to validate token
+            const result = await verifyTokenQuery.mutateAsync({ token });
+            if (result.valid && result.user) {
+              // Map server user to client user format
+              const user: User = {
+                id: result.user.id,
+                username: result.user.email,
+                email: result.user.email,
+                role: mapServerRoleToClientRole(result.user.role),
+                name: `${result.user.firstName} ${result.user.lastName}`
+              };
+              setUser(user);
+            } else {
+              // Token is invalid, clear auth state
+              authService.logout();
+              setUser(null);
+            }
+          }
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        authService.logout();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     initializeAuth();
-  }, []);
+  }, [verifyTokenQuery]);
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await authService.login(credentials);
+      const result = await loginMutation.mutateAsync({
+        email: credentials.username,
+        password: credentials.password
+      });
       
-      if (response.success && response.user) {
-        setUser(response.user);
+      if (result.user && result.token) {
+        // Map server user to client user format
+        const user: User = {
+          id: result.user.id,
+          username: result.user.email,
+          email: result.user.email,
+          role: mapServerRoleToClientRole(result.user.role),
+          name: `${result.user.firstName} ${result.user.lastName}`
+        };
+
+        // Save to auth service for localStorage management
+        authService.setCurrentUser(user, result.token);
+        setUser(user);
         setError(null);
+        
+        return { success: true, user, token: result.token };
       } else {
-        setError(response.error || 'Login failed');
+        setError('Login failed');
+        return { success: false, error: 'Login failed' };
       }
-      
-      return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Map server role to client role
+  const mapServerRoleToClientRole = (serverRole: string): 'admin' | 'editor' | 'viewer' => {
+    switch (serverRole) {
+      case 'admin':
+        return 'admin';
+      case 'organizer':
+        return 'editor';
+      case 'volunteer':
+        return 'editor';
+      case 'viewer':
+        return 'viewer';
+      default:
+        return 'viewer';
     }
   };
 

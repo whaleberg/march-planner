@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { MarchData, MarchDay, Marcher, PartnerOrganization, Vehicle } from '../types';
 import { sampleMarchData } from '../data/sampleData';
 import { apiService } from '../services/apiService';
-import { authService } from '../services/authService';
+import authService from '../services/authService';
 import { calculateDayDistance, calculateWalkingTime } from '../utils/routeUtils';
 
 // Configuration
