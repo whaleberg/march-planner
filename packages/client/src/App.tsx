@@ -5,7 +5,6 @@ import { AuthProvider } from './context/AuthContext';
 import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
-import Overview from './components/Overview';
 import OverviewNew from './components/OverviewNew';
 import DayDetail from './components/DayDetail';
 import MarchersPage from './components/MarchersPage';
@@ -29,9 +28,8 @@ const App: React.FC = () => {
           <main>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={USE_NEW_OVERVIEW ? <OverviewNew /> : <Overview />} />
+              <Route path="/" element={<OverviewNew />} />
               <Route path="/overview-new" element={<OverviewNew />} />
-              <Route path="/overview-old" element={<Overview />} />
               <Route path="/day/:dayId" element={<DayDetail />} />
               <Route path="/login" element={<Login />} />
               {/* Protected Routes - Require Editor Access */}

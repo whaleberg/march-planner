@@ -35,6 +35,12 @@ export interface March extends VersionedEntity {
   };
 }
 
+export interface Meal {
+  location: string;
+  time: string;
+  description?: string;
+}
+
 export interface MarchDay extends VersionedEntity {
   marchId: string;
   date: string;
@@ -50,21 +56,9 @@ export interface MarchDay extends VersionedEntity {
       estimatedTime?: string;
     }>;
   };
-  breakfast: {
-    location: string;
-    time: string;
-    description?: string;
-  };
-  lunch: {
-    location: string;
-    time: string;
-    description?: string;
-  };
-  dinner: {
-    location: string;
-    time: string;
-    description?: string;
-  };
+  breakfast: Meal,
+  lunch: Meal,
+  dinner: Meal,
   specialEvents: Array<{
     id: string;
     title: string;

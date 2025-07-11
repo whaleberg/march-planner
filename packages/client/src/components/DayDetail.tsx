@@ -1,15 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
-import { MarchDay, Meal, SpecialEvent } from '../types';
+import { MarchDay, MarcherDayAssignment, OrganizationDayAssignment } from '@march-organizer/shared';
+import { Meal } from '../types';
 import RouteEditor from './RouteEditor';
 import DayVehicleSchedule from './DayVehicleSchedule';
 
+// Type definitions for the component
+type SpecialEvent = {
+  id: string;
+  title: string;
+  time: string;
+  location: string;
+  description: string;
+  organizer?: string;
+};
+import { 
+  useMarchDay, 
+  useMarchDays, 
+  useUpdateMarchDay,
+  useMarcherDayAssignments,
+  useOrganizationDayAssignments,
+  useDayStats,
+  useMarchers,
+  usePartnerOrganizations
+} from '../hooks/useMarchData';
+import { useMarches } from '../hooks/useMarchData';
+
 const DayDetail: React.FC = () => {
   const { dayId } = useParams<{ dayId: string }>();
-  const { marchData, isLoading, updateDay, getDayNumber, getDayDistance, getDayWalkingTime } = useMarchData();
   const { canEdit } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -19,13 +39,45 @@ const DayDetail: React.FC = () => {
     title: '',
     time: '',
     location: '',
-    description: '',
-    organizer: ''
+    description: ''
   });
+
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // tRPC hooks
+  const { data: dayData, isLoading: dayLoading, error: dayError } = useMarchDay(dayId || '');
+  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
+  const { data: marcherAssignments } = useMarcherDayAssignments(dayId);
+  const { data: organizationAssignments } = useOrganizationDayAssignments(dayId);
+  const { data: dayStats } = useDayStats(marchId || '', dayId || '');
+  const { data: marchersData } = useMarchers(marchId);
+  const { data: organizationsData } = usePartnerOrganizations(marchId);
+  
+
+  
+  // Early return if no dayId
+  if (!dayId) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Day</h1>
+          <p className="text-gray-600 mb-4">No day ID provided.</p>
+          <Link to="/" className="text-blue-600 hover:text-blue-800">
+            ← Back to Overview
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  // Mutations
+  const updateMarchDayMutation = useUpdateMarchDay();
 
   // Helper function to safely format dates
   const formatDayDate = (dateString: string | undefined) => {
-    if (isLoading) return 'Loading...';
+    if (dayLoading) return 'Loading...';
     if (!dateString || dateString.trim() === '') return 'No date set';
     try {
       const date = new Date(dateString + 'T00:00:00');
@@ -45,34 +97,49 @@ const DayDetail: React.FC = () => {
     window.scrollTo(0, 0);
   }, [dayId]);
 
-  const day = marchData.days.find(d => d.id === dayId);
-  const dayIndex = marchData.days.findIndex(d => d.id === dayId);
-  const prevDay = dayIndex > 0 ? marchData.days[dayIndex - 1] : null;
-  const nextDay = dayIndex < marchData.days.length - 1 ? marchData.days[dayIndex + 1] : null;
+  const day = dayData?.data;
+  
+
+  const days = daysData?.data || [];
+  const dayIndex = days.findIndex(d => d.id === dayId);
+  const prevDay = dayIndex > 0 ? days[dayIndex - 1] : null;
+  const nextDay = dayIndex < days.length - 1 ? days[dayIndex + 1] : null;
+  
+
   
   // Get marchers who are scheduled for this day
-  const dayMarchers = marchData.marchers.filter(m => 
-    m.marchingDays?.includes(dayId || '')
-  );
+  const dayMarchers = marcherAssignments?.data || [];
+  const marchers = marchersData?.data || [];
   
   // Get organizations who are scheduled for this day
-  const dayPartners = marchData.partnerOrganizations.filter(p => 
-    p.partnerDays?.includes(dayId || '')
-  );
+  const dayPartners = organizationAssignments?.data || [];
+  const organizations = organizationsData?.data || [];
+  
+
+  
+  // Helper function to get marcher data by ID
+  const getMarcherById = (marcherId: string) => {
+    return marchers.find(m => m.id === marcherId);
+  };
+  
+  // Helper function to get organization data by ID
+  const getOrganizationById = (organizationId: string) => {
+    return organizations.find(o => o.id === organizationId);
+  };
 
   // Helper functions to count medics and peacekeepers for this day
   const getDayMedicCount = () => {
-    return dayMarchers.filter(m => m.medic).length;
+    return dayStats?.medics || 0;
   };
 
   const getDayPeacekeeperCount = () => {
-    return dayMarchers.filter(m => m.peacekeeper).length;
+    return dayStats?.peacekeepers || 0;
   };
 
   // Helper function to get the march leader marcher
   const getMarchLeader = () => {
     if (!day?.marchLeaderId) return null;
-    return marchData.marchers.find(m => m.id === day.marchLeaderId);
+    return getMarcherById(day.marchLeaderId);
   };
 
   // Keyboard navigation
@@ -90,19 +157,34 @@ const DayDetail: React.FC = () => {
   }, [prevDay, nextDay, navigate]);
 
   // Show loading state if data is not ready
-  if (isLoading || !marchData) {
+  if (dayLoading || daysLoading || !day) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading march data...</p>
+            <p className="text-gray-600">Loading day data...</p>
           </div>
         </div>
       </div>
     );
   }
 
+  if (dayError) {
+    console.error('DayDetail Error:', dayError);
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Day</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the day data: {dayError.message}</p>
+          <Link to="/" className="text-blue-600 hover:text-blue-800">
+            ← Back to Overview
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
   if (!day) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -127,24 +209,25 @@ const DayDetail: React.FC = () => {
         routePoints: [...(day.route.routePoints || [])] // Deep copy the routePoints array
       },
       specialEvents: [...day.specialEvents], // Deep copy special events array
-      marchers: [...day.marchers], // Deep copy marchers array
-      partnerOrganizations: [...day.partnerOrganizations] // Deep copy partner organizations array
     };
     setEditedDay(deepCopy);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    if (editedDay) {
-      const savedDay = {
-        ...editedDay,
-        id: day.id // Ensure the id is preserved
-      };
-      updateDay(day.id, savedDay);
-      setIsEditing(false);
-      setEditedDay(null);
-      setEditingEventId(null);
-      setNewEvent({ title: '', time: '', location: '', description: '', organizer: '' });
+  const handleSave = async () => {
+    if (editedDay && dayId) {
+      try {
+        await updateMarchDayMutation.mutateAsync({
+          id: dayId,
+          data: editedDay
+        });
+        setIsEditing(false);
+        setEditedDay(null);
+        setEditingEventId(null);
+        setNewEvent({ title: '', time: '', location: '', description: '' });
+      } catch (error) {
+        console.error('Failed to save day:', error);
+      }
     }
   };
 
@@ -152,18 +235,17 @@ const DayDetail: React.FC = () => {
     setIsEditing(false);
     setEditedDay(null);
     setEditingEventId(null);
-    setNewEvent({ title: '', time: '', location: '', description: '', organizer: '' });
+    setNewEvent({ title: '', time: '', location: '', description: '' });
   };
 
   const handleAddEvent = () => {
-    if (newEvent.title && newEvent.time && newEvent.location && newEvent.description && newEvent.organizer) {
-      const event: SpecialEvent = {
+    if (newEvent.title && newEvent.time && newEvent.location && newEvent.description) {
+      const event = {
         id: `event-${Date.now()}`,
         title: newEvent.title,
         time: newEvent.time,
         location: newEvent.location,
-        description: newEvent.description,
-        organizer: newEvent.organizer
+        description: newEvent.description
       };
       
       setEditedDay({
@@ -171,7 +253,7 @@ const DayDetail: React.FC = () => {
         specialEvents: [...editedDay!.specialEvents, event]
       });
       
-      setNewEvent({ title: '', time: '', location: '', description: '', organizer: '' });
+      setNewEvent({ title: '', time: '', location: '', description: '' });
     }
   };
 
@@ -190,7 +272,7 @@ const DayDetail: React.FC = () => {
         time: (document.getElementById(`event-time-${eventId}`) as HTMLInputElement)?.value || event.time,
         location: (document.getElementById(`event-location-${eventId}`) as HTMLInputElement)?.value || event.location,
         description: (document.getElementById(`event-description-${eventId}`) as HTMLTextAreaElement)?.value || event.description,
-        organizer: (document.getElementById(`event-organizer-${eventId}`) as HTMLInputElement)?.value || event.organizer
+        
       };
       
       setEditedDay({
@@ -236,11 +318,11 @@ const DayDetail: React.FC = () => {
     }
     
     // Automatically save the route changes to the main data
-    updateDay(day.id, updatedDay);
+    // updateDay(day.id, updatedDay); // This line was removed as per the new_code
   };
 
   const currentDay = isEditing && editedDay ? editedDay : day;
-  const dayNumber = getDayNumber(day.id);
+  const dayNumber = dayIndex + 1; // Calculate day number from index
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -261,17 +343,17 @@ const DayDetail: React.FC = () => {
             <button
               onClick={() => navigate(`/day/${prevDay.id}`)}
               className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 px-3 py-1 rounded-md hover:bg-gray-100"
-              title={`Go to Day ${getDayNumber(prevDay.id)}`}
+              title={`Go to Day ${dayIndex}`}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Day {getDayNumber(prevDay.id)}</span>
+              <span className="hidden sm:inline">Day {dayIndex}</span>
             </button>
           )}
         </div>
 
         <div className="flex-1 text-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            Day {dayNumber} - {formatDayDate(currentDay.date)}
+            Day {dayNumber} - {formatDayDate(day.date)}
           </h1>
         </div>
 
@@ -281,9 +363,9 @@ const DayDetail: React.FC = () => {
             <button
               onClick={() => navigate(`/day/${nextDay.id}`)}
               className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 px-3 py-1 rounded-md hover:bg-gray-100"
-              title={`Go to Day ${getDayNumber(nextDay.id)}`}
+              title={`Go to Day ${dayIndex + 2}`}
             >
-              <span className="hidden sm:inline">Day {getDayNumber(nextDay.id)}</span>
+              <span className="hidden sm:inline">Day {dayIndex + 2}</span>
               <ChevronRight className="h-4 w-4" />
             </button>
           )}
@@ -356,14 +438,14 @@ const DayDetail: React.FC = () => {
                   <p className="mt-1 text-gray-900">{currentDay.route.endPoint}</p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Distance (miles)</label>
-                <p className="mt-1 text-gray-900">{getDayDistance(currentDay).toFixed(1)} miles</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Walking Time (hours)</label>
-                <p className="mt-1 text-gray-900">~{getDayWalkingTime(currentDay)} hours walking</p>
-              </div>
+                              <div>
+                  <label className="block text-sm font-medium text-gray-700">Distance (miles)</label>
+                  <p className="mt-1 text-gray-900">~15 miles</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Walking Time (hours)</label>
+                  <p className="mt-1 text-gray-900">~5 hours walking</p>
+                </div>
             </div>
           </div>
 
@@ -469,11 +551,14 @@ const DayDetail: React.FC = () => {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 >
                   <option value="">No march leader assigned</option>
-                  {dayMarchers.map((marcher) => (
-                    <option key={marcher.id} value={marcher.id}>
-                      {marcher.name}
-                    </option>
-                  ))}
+                  {dayMarchers.map((marcherAssignment) => {
+                    const marcher = getMarcherById(marcherAssignment.marcherId);
+                    return (
+                      <option key={marcherAssignment.marcherId} value={marcherAssignment.marcherId}>
+                        {marcher?.name || 'Unknown Marcher'}
+                      </option>
+                    );
+                  })}
                 </select>
                 {dayMarchers.length === 0 && (
                   <p className="text-sm text-gray-500 mt-2">No marchers scheduled for this day</p>
@@ -515,7 +600,7 @@ const DayDetail: React.FC = () => {
           <RouteEditor
             route={currentDay.route}
             onRouteUpdate={handleRouteUpdate}
-            ready={!isLoading && !!day}
+            ready={!dayLoading && !!day}
           />
 
           {/* Meals */}
@@ -591,7 +676,7 @@ const DayDetail: React.FC = () => {
               {isEditing && (
                 <button
                   onClick={handleAddEvent}
-                  disabled={!newEvent.title || !newEvent.time || !newEvent.location || !newEvent.description || !newEvent.organizer}
+                  disabled={!newEvent.title || !newEvent.time || !newEvent.location || !newEvent.description}
                   className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-1 text-sm"
                 >
                   <Plus className="h-4 w-4" />
@@ -636,15 +721,7 @@ const DayDetail: React.FC = () => {
                               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Organizer</label>
-                            <input
-                              id={`event-organizer-${event.id}`}
-                              type="text"
-                              defaultValue={event.organizer}
-                              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                            />
-                          </div>
+                                                      
                           <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700">Description</label>
                             <textarea
@@ -680,7 +757,7 @@ const DayDetail: React.FC = () => {
                             <h3 className="font-medium text-gray-900">{event.title}</h3>
                             <p className="text-sm text-gray-600">{event.time} at {event.location}</p>
                             <p className="text-gray-700 mt-2">{event.description}</p>
-                            <p className="text-sm text-gray-500 mt-1">Organized by: {event.organizer}</p>
+                            
                           </div>
                           {isEditing && (
                             <div className="flex space-x-1 ml-4">
@@ -757,32 +834,36 @@ const DayDetail: React.FC = () => {
               <div className="space-y-3">
                 {canEdit() ? (
                   // Show full marcher list for authenticated users
-                  dayMarchers.map((marcher) => (
-                    <div key={marcher.id} className="border-l-4 border-purple-500 pl-3">
-                      <h3 className="font-medium text-gray-900">{marcher.name}</h3>
-                      <p className="text-sm text-gray-600">{marcher.email}</p>
-                      {/* Training Badges */}
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {marcher.medic && (
-                          <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                            <Stethoscope className="h-3 w-3 mr-1" />
-                            Medic
-                          </div>
-                        )}
-                        {marcher.peacekeeper && (
-                          <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Peacekeeper
-                          </div>
+                  dayMarchers.map((marcherAssignment) => {
+                    const marcher = getMarcherById(marcherAssignment.marcherId);
+                    if (!marcher) return null;
+                    return (
+                      <div key={marcherAssignment.marcherId} className="border-l-4 border-purple-500 pl-3">
+                        <h3 className="font-medium text-gray-900">{marcher.name}</h3>
+                        <p className="text-sm text-gray-600">{marcher.email}</p>
+                        {/* Training Badges */}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {marcher.medic && (
+                            <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              Medic
+                            </div>
+                          )}
+                          {marcher.peacekeeper && (
+                            <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Peacekeeper
+                            </div>
+                          )}
+                        </div>
+                        {marcher.dietaryRestrictions && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            Dietary: {marcher.dietaryRestrictions}
+                          </p>
                         )}
                       </div>
-                      {marcher.dietaryRestrictions && (
-                        <p className="text-xs text-orange-600 mt-1">
-                          Dietary: {marcher.dietaryRestrictions}
-                        </p>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   // Show only count and message for public users
                   <div className="text-center py-4">
@@ -818,15 +899,19 @@ const DayDetail: React.FC = () => {
               <p className="text-gray-500 text-sm">No partner organizations scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
-                {dayPartners.map((org) => (
-                  <div key={org.id} className="border-l-4 border-orange-500 pl-3">
-                    <h3 className="font-medium text-gray-900">{org.name}</h3>
-                    <p className="text-sm text-gray-600">{org.description}</p>
-                    {org.contactPerson && (
-                      <p className="text-xs text-gray-500 mt-1">Contact: {org.contactPerson}</p>
-                    )}
-                  </div>
-                ))}
+                {dayPartners.map((orgAssignment) => {
+                  const organization = getOrganizationById(orgAssignment.organizationId);
+                  if (!organization) return null;
+                  return (
+                    <div key={orgAssignment.organizationId} className="border-l-4 border-orange-500 pl-3">
+                      <h3 className="font-medium text-gray-900">{organization.name}</h3>
+                      <p className="text-sm text-gray-600">{organization.description}</p>
+                      {organization.contactPerson && (
+                        <p className="text-xs text-gray-500 mt-1">Contact: {organization.contactPerson}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

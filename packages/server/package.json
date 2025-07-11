@@ -7,8 +7,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.ts",
-    "dev": "ts-node-dev --respawn src/server.ts",
-    "lint": "eslint src --ext .ts --cache"
+    "debug": "ts-node-dev --inspect --respawn src/server.ts",
+    "lint": "eslint  --no-ignore src/**/*.ts --cache",
+    "dev": "ts-node-dev --respawn src/server.ts"
   },
   "dependencies": {
     "@march-organizer/shared": "1.0.0",

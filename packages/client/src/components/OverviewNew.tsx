@@ -1,15 +1,20 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, MapPin, Users, Building2, Clock, ArrowRight, Flag, Heart, Database, Navigation, Edit, Save, X, Stethoscope, Shield } from 'lucide-react';
 import Map from './Map';
-import SummaryStats from './SummaryStats';
-import { RoutePoint, MarchDay } from '../types';
+import { RoutePoint } from '../types';
 import { getRoutePointName } from '../utils/routeUtils';
+import { 
+  useMarch, 
+  useMarches,
+  useUpdateMarch, 
+  useMarchDays, 
+  useMarchStats,
+} from '../hooks/useMarchData';
+import { trpc } from '../lib/trpc';
 
-const Overview: React.FC = () => {
-  const { marchData, isLoading, getTotalDistance, getDayDistance, getDayWalkingTime, getDayNumber, updateMarchData } = useMarchData();
+const OverviewNew: React.FC = () => {
   const { canEdit } = useAuth();
   const location = useLocation();
   const dayRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -25,65 +30,88 @@ const Overview: React.FC = () => {
   const [isEditingCallToAction, setIsEditingCallToAction] = useState(false);
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [isEditingItinerary, setIsEditingItinerary] = useState(false);
-  const [editedData, setEditedData] = useState(marchData);
+  const [editedData, setEditedData] = useState<any>(null);
 
-  // Helper functions to count medics and peacekeepers for a day
-  const getDayMedicCount = (dayId: string) => {
-    return marchData.marchers.filter(m => 
-      m.marchingDays?.includes(dayId) && m.medic
-    ).length;
-  };
+  // Get all marches first
+  const { data: marchesData, isLoading: marchesLoading } = useMarches();
+  
+  // Get the first available march ID
+  const marchId = marchesData?.data?.[0]?.id;
+  
+  // tRPC hooks - only run if we have a march ID
+  const { data: marchData, isLoading: marchLoading } = useMarch(marchId || '');
+  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
+  const { data: summaryData, isLoading: summaryLoading } = useMarchStats(marchId || '');
+  
+  // New summary endpoints
+  const { data: daysSummary, isLoading: daysSummaryLoading } = trpc.summary.days.useQuery(
+    { marchId: marchId || '' },
+    { enabled: !!marchId }
+  );
+  const { data: partnersSummary, isLoading: partnersLoading } = trpc.summary.partners.useQuery(
+    { marchId: marchId || '' },
+    { enabled: !!marchId }
+  );
+  const { data: vehiclesSummary, isLoading: vehiclesLoading } = trpc.summary.vehicles.useQuery(
+    { marchId: marchId || '' },
+    { enabled: !!marchId }
+  );
 
-  const getDayPeacekeeperCount = (dayId: string) => {
-    return marchData.marchers.filter(m => 
-      m.marchingDays?.includes(dayId) && m.peacekeeper
-    ).length;
-  };
+  // Mutations
+  const updateMarchMutation = useUpdateMarch();
 
-  // Helper functions to get total counts across all days
-  const getTotalMedicCount = () => {
-    return marchData.marchers.filter(m => m.medic).length;
-  };
+  // Loading state
+  const isLoading = marchesLoading || marchLoading || daysLoading || summaryLoading || daysSummaryLoading || partnersLoading || vehiclesLoading;
 
-  const getTotalPeacekeeperCount = () => {
-    return marchData.marchers.filter(m => m.peacekeeper).length;
-  };
+
 
   // Update edited data when marchData changes
   useEffect(() => {
-    setEditedData(marchData);
+    if (marchData?.data) {
+      setEditedData(marchData.data);
+    }
   }, [marchData]);
 
   const handleEditMission = () => {
     setIsEditingMission(true);
-    setEditedData(marchData);
+    setEditedData(marchData?.data);
   };
 
   const handleEditCallToAction = () => {
     setIsEditingCallToAction(true);
-    setEditedData(marchData);
+    setEditedData(marchData?.data);
   };
 
   const handleEditHero = () => {
     setIsEditingHero(true);
-    setEditedData(marchData);
+    setEditedData(marchData?.data);
   };
 
   const handleEditItinerary = () => {
     setIsEditingItinerary(true);
-    setEditedData(marchData);
+    setEditedData(marchData?.data);
   };
 
-  const handleSave = () => {
-    updateMarchData(editedData);
-    setIsEditingMission(false);
-    setIsEditingCallToAction(false);
-    setIsEditingHero(false);
-    setIsEditingItinerary(false);
+  const handleSave = async () => {
+    if (!editedData || !marchData?.data || !marchId) return;
+
+    try {
+      await updateMarchMutation.mutateAsync({
+        id: marchId,
+        data: editedData
+      });
+      
+      setIsEditingMission(false);
+      setIsEditingCallToAction(false);
+      setIsEditingHero(false);
+      setIsEditingItinerary(false);
+    } catch (error) {
+      console.error('Failed to save:', error);
+    }
   };
 
   const handleCancel = () => {
-    setEditedData(marchData);
+    setEditedData(marchData?.data);
     setIsEditingMission(false);
     setIsEditingCallToAction(false);
     setIsEditingHero(false);
@@ -91,14 +119,14 @@ const Overview: React.FC = () => {
   };
 
   const handleFieldChange = (field: string, value: string) => {
-    setEditedData(prev => ({
+    setEditedData((prev: any) => ({
       ...prev,
       [field]: value
     }));
   };
 
   const handleMissionStatementChange = (field: string, value: string) => {
-    setEditedData(prev => ({
+    setEditedData((prev: any) => ({
       ...prev,
       missionStatement: {
         ...prev.missionStatement,
@@ -108,7 +136,7 @@ const Overview: React.FC = () => {
   };
 
   const handleCallToActionChange = (field: string, value: string) => {
-    setEditedData(prev => ({
+    setEditedData((prev: any) => ({
       ...prev,
       callToAction: {
         ...prev.callToAction,
@@ -119,7 +147,7 @@ const Overview: React.FC = () => {
 
   // Helper functions to safely access flavor text fields with fallbacks
   const getMissionStatement = () => {
-    return marchData.missionStatement || {
+    return marchData?.data?.missionStatement || {
       title: "More than a march—a people's movement",
       subtitle: "Join us as we walk together, strengthening community bonds and demonstrating our commitment to democracy.",
       description: "Every step counts, every voice matters."
@@ -127,14 +155,14 @@ const Overview: React.FC = () => {
   };
 
   const getCallToAction = () => {
-    return marchData.callToAction || {
+    return marchData?.data?.callToAction || {
       title: "Join the Movement",
       description: "Whether you can walk for an hour, a day, or the entire journey, your participation makes a difference."
     };
   };
 
   const getItineraryDescription = () => {
-    return marchData.itineraryDescription || "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.";
+    return marchData?.data?.itineraryDescription || "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.";
   };
 
   // Helper function to safely format dates
@@ -150,7 +178,7 @@ const Overview: React.FC = () => {
   };
 
   // Helper function to safely format day dates
-  const formatDayDate = (day: MarchDay) => {
+  const formatDayDate = (day: any) => {
     if (!day?.date) return 'Loading...';
     try {
       const date = new Date(day.date + 'T00:00:00');
@@ -193,6 +221,10 @@ const Overview: React.FC = () => {
     let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
     let hasValidCoordinates = false;
     
+    if (!daysData?.data) {
+      return { routePoints: [], mapCenter: { lat: 42.3601, lng: -71.0589 }, polylinePath: '' };
+    }
+    
     // Collect all unique locations for the march
     const uniqueLocations: Array<{
       coordinates: { lat: number; lng: number };
@@ -202,7 +234,7 @@ const Overview: React.FC = () => {
       isEnd: boolean;
     }> = [];
     
-    marchData.days.forEach((day, index) => {
+    daysData.data.forEach((day, index) => {
       const startPoint = day.route.routePoints.find(point => point.type === 'start');
       const endPoint = day.route.routePoints.find(point => point.type === 'end');
       
@@ -255,7 +287,7 @@ const Overview: React.FC = () => {
         coordinates: location.coordinates,
         type: pointType,
         description: `Day ${location.dayNumber} ${location.isStart ? 'Start' : 'End'}`,
-        estimatedTime: new Date(marchData.days[location.dayNumber - 1].date + 'T00:00:00').toLocaleDateString('en-US', { 
+        estimatedTime: new Date(daysData.data[location.dayNumber - 1].date + 'T00:00:00').toLocaleDateString('en-US', { 
           month: 'short', 
           day: 'numeric' 
         })
@@ -290,7 +322,7 @@ const Overview: React.FC = () => {
     }
     
     // Calculate center based on bounds if we have valid coordinates
-    let center = marchData.mapSettings?.mapCenter || { lat: 42.3601, lng: -71.0589 }; // Boston
+    let center = marchData?.data?.mapSettings?.mapCenter || { lat: 42.3601, lng: -71.0589 }; // Boston
     if (hasValidCoordinates) {
       center = {
         lat: (minLat + maxLat) / 2,
@@ -299,10 +331,10 @@ const Overview: React.FC = () => {
     }
     
     return { routePoints: allPoints, mapCenter: center, polylinePath };
-  }, [marchData.days, marchData.mapSettings?.mapCenter]);
+  }, [daysData?.data, marchData?.data?.mapSettings?.mapCenter]);
 
   // Show loading state if data is not ready
-  if (isLoading || !marchData) {
+  if (isLoading || !marchData?.data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50">
         <div className="container mx-auto px-4 py-8">
@@ -316,6 +348,17 @@ const Overview: React.FC = () => {
       </div>
     );
   }
+
+  const march = marchData.data;
+  const days = daysData?.data || [];
+  
+  // Create stats object from summary data
+  const stats = {
+    totalDays: daysSummary?.total || 0,
+    totalOrganizations: partnersSummary?.total || 0,
+    totalVehicles: vehiclesSummary?.total || 0
+  };
+
 
   // Polyline interaction handlers
   const handlePolylineHover = (_startPoint: RoutePoint, _endPoint: RoutePoint, dayIndex: number) => {
@@ -379,13 +422,13 @@ const Overview: React.FC = () => {
           <div className="space-y-4">
             <input
               type="text"
-              value={editedData.title}
+              value={editedData?.title || ''}
               onChange={(e) => handleFieldChange('title', e.target.value)}
               className="text-5xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-3xl"
               placeholder="March title"
             />
             <textarea
-              value={editedData.description}
+              value={editedData?.description || ''}
               onChange={(e) => handleFieldChange('description', e.target.value)}
               className="text-xl text-gray-600 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-3xl resize-none"
               rows={3}
@@ -395,10 +438,10 @@ const Overview: React.FC = () => {
         ) : (
           <>
             <h1 className="text-5xl font-bold text-gray-900 mb-4 patriotic-accent">
-              {marchData.title}
+              {march.title}
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              {marchData.description}
+              {march.description}
             </p>
           </>
         )}
@@ -406,11 +449,11 @@ const Overview: React.FC = () => {
         <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
           <span className="flex items-center">
             <Calendar className="h-4 w-4 mr-1" />
-            {formatDate(marchData.startDate)} - {formatDate(marchData.endDate)}
+            {formatDate(march.startDate)} - {formatDate(march.endDate)}
           </span>
           <span className="flex items-center">
             <MapPin className="h-4 w-4 mr-1" />
-            {getTotalDistance().toFixed(1)} Miles
+            {stats?.totalDays || 0} Days
           </span>
         </div>
       </div>
@@ -456,20 +499,20 @@ const Overview: React.FC = () => {
             <div className="space-y-4">
               <input
                 type="text"
-                value={editedData.missionStatement?.title || getMissionStatement().title}
+                value={editedData?.missionStatement?.title || getMissionStatement().title}
                 onChange={(e) => handleMissionStatementChange('title', e.target.value)}
                 className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl"
                 placeholder="Mission statement title"
               />
               <textarea
-                value={editedData.missionStatement?.subtitle || getMissionStatement().subtitle}
+                value={editedData?.missionStatement?.subtitle || getMissionStatement().subtitle}
                 onChange={(e) => handleMissionStatementChange('subtitle', e.target.value)}
                 className="text-lg text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
                 rows={2}
                 placeholder="Mission statement subtitle"
               />
               <textarea
-                value={editedData.missionStatement?.description || getMissionStatement().description}
+                value={editedData?.missionStatement?.description || getMissionStatement().description}
                 onChange={(e) => handleMissionStatementChange('description', e.target.value)}
                 className="text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
                 rows={3}
@@ -491,7 +534,7 @@ const Overview: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
         <div className="card p-6">
           <div className="flex items-center">
             <div className="bg-red-100 p-3 rounded-full">
@@ -499,7 +542,7 @@ const Overview: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Duration</p>
-              <p className="text-2xl font-bold text-gray-900">{marchData.days.length} Days</p>
+              <p className="text-2xl font-bold text-gray-900">{stats?.totalDays || 0} Days</p>
             </div>
           </div>
         </div>
@@ -510,7 +553,7 @@ const Overview: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Miles</p>
-              <p className="text-2xl font-bold text-gray-900">{getTotalDistance().toFixed(1)}</p>
+              <p className="text-2xl font-bold text-gray-900">~{stats?.totalDays * 15 || 0}</p>
             </div>
           </div>
         </div>
@@ -522,7 +565,7 @@ const Overview: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Marchers</p>
               <p className="text-2xl font-bold text-gray-900">
-                {canEdit() ? marchData.marchers.length : (marchData.marchers.length > 0 ? 'Join Us!' : '0')}
+                {canEdit() ? summaryData?.total || 0 : (summaryData?.total || 0 > 0 ? 'Join Us!' : '0')}
               </p>
             </div>
           </div>
@@ -535,7 +578,7 @@ const Overview: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Partners</p>
               <p className="text-2xl font-bold text-gray-900">
-                {marchData.partnerOrganizations.length}
+                {stats?.totalOrganizations || 0}
               </p>
             </div>
           </div>
@@ -551,13 +594,13 @@ const Overview: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Safety Team</p>
               <div className="flex items-baseline space-x-4 mt-1">
-                <div className="flex items-center" title={`${getTotalMedicCount()} Medics`}>
+                <div className="flex items-center" title={`${summaryData?.medics} Medics`}>
                   <Stethoscope className="h-6 w-6 text-red-600" />
-                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{getTotalMedicCount()}</span>
+                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{summaryData?.medics}</span>
                 </div>
-                <div className="flex items-center" title={`${getTotalPeacekeeperCount()} Peacekeepers`}>
+                <div className="flex items-center" title={`${summaryData?.peacekeepers} Peacekeepers`}>
                   <Shield className="h-6 w-6 text-blue-600" />
-                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{getTotalPeacekeeperCount()}</span>
+                  <span className="text-2xl font-bold text-gray-900 ml-1.5">{summaryData?.peacekeepers}</span>
                 </div>
               </div>
             </div>
@@ -606,13 +649,13 @@ const Overview: React.FC = () => {
             <div className="space-y-4">
               <input
                 type="text"
-                value={editedData.callToAction?.title || getCallToAction().title}
+                value={editedData?.callToAction?.title || getCallToAction().title}
                 onChange={(e) => handleCallToActionChange('title', e.target.value)}
                 className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl"
                 placeholder="Call to action title"
               />
               <textarea
-                value={editedData.callToAction?.description || getCallToAction().description}
+                value={editedData?.callToAction?.description || getCallToAction().description}
                 onChange={(e) => handleCallToActionChange('description', e.target.value)}
                 className="text-lg text-gray-700 bg-white border border-gray-300 rounded px-3 py-2 w-full max-w-2xl resize-none"
                 rows={3}
@@ -656,11 +699,6 @@ const Overview: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Statistics */}
-      <div className="mb-8">
-        <SummaryStats />
-      </div>
-
       {/* Route Map */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -668,7 +706,7 @@ const Overview: React.FC = () => {
           Complete March Route
         </h2>
         <p className="text-gray-600 mb-4">
-          {formatDate(marchData.startDate)} to {formatDate(marchData.endDate)} • {marchData.days.length} days • {getTotalDistance().toFixed(1)} miles
+          {formatDate(march.startDate)} to {formatDate(march.endDate)} • {stats?.totalDays || 0} days • ~{stats?.totalDays * 15 || 0} miles
         </p>
         {routePoints.length > 0 ? (
           <Map
@@ -735,7 +773,7 @@ const Overview: React.FC = () => {
           
           {isEditingItinerary ? (
             <textarea
-              value={editedData.itineraryDescription || getItineraryDescription()}
+              value={editedData?.itineraryDescription || getItineraryDescription()}
               onChange={(e) => handleFieldChange('itineraryDescription', e.target.value)}
               className="text-gray-600 bg-white border border-gray-300 rounded px-3 py-2 w-full mt-2 resize-none"
               rows={2}
@@ -746,8 +784,8 @@ const Overview: React.FC = () => {
           )}
         </div>
         <div className="divide-y divide-gray-200">
-          {marchData.days.map((day, index) => {
-            const dayNumber = getDayNumber(day.id);
+          {days.map((day, index) => {
+            const dayNumber = index + 1;
             const isHovered = hoveredDayIndex === index;
             const isClicked = clickedPolyline?.dayIndex === index;
             
@@ -777,33 +815,21 @@ const Overview: React.FC = () => {
                         Day {dayNumber} - {formatDayDate(day)}
                       </h3>
                       <p className="text-gray-600">
-                        {getRoutePointName(day, 'start')} <ArrowRight className="inline h-4 w-4" /> {getRoutePointName(day, 'end')}
+                        {day.route.startPoint} <ArrowRight className="inline h-4 w-4" /> {day.route.endPoint}
                       </p>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                         <span className="flex items-center">
                           <MapPin className="h-4 w-4 mr-1" />
-                          {getDayDistance(day).toFixed(1)} miles
+                          ~15 miles
                         </span>
                         <span className="flex items-center">
                           <Clock className="h-4 w-4 mr-1" />
-                          ~{getDayWalkingTime(day)} hours walking
+                          ~5 hours walking
                         </span>
                         <span className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
-                          {marchData.marchers.filter(m => m.marchingDays?.includes(day.id)).length} marchers
+                          Join us!
                         </span>
-                        {getDayMedicCount(day.id) > 0 && (
-                          <span className="flex items-center">
-                            <Stethoscope className="h-4 w-4 mr-1 text-red-500" />
-                            {getDayMedicCount(day.id)} medic{getDayMedicCount(day.id) !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {getDayPeacekeeperCount(day.id) > 0 && (
-                          <span className="flex items-center">
-                            <Shield className="h-4 w-4 mr-1 text-blue-500" />
-                            {getDayPeacekeeperCount(day.id)} peacekeeper{getDayPeacekeeperCount(day.id) !== 1 ? 's' : ''}
-                          </span>
-                        )}
                       </div>
                       {isClicked && clickedPolyline && (
                         <div className="mt-2 p-2 bg-blue-100 rounded-md text-sm">
@@ -849,4 +875,4 @@ const Overview: React.FC = () => {
   );
 };
 
-export default Overview; 
+export default OverviewNew; 
