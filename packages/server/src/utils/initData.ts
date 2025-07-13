@@ -1,6 +1,9 @@
 import { dataService } from '../services/dataService';
+import { PrismaClient } from '@prisma/client';
+
 
 export async function initializeSampleData() {
+  const prisma = new PrismaClient();
   console.log('🚀 Initializing sample data...');
 
   // Create a sample march
@@ -313,4 +316,16 @@ export async function initializeSampleData() {
 
   console.log('🎉 Sample data initialization complete!');
   console.log(`📊 Created: ${marcherIds.length} marchers, ${organizationIds.length} organizations, ${vehicleIds.length} vehicles, ${dayIds.length} march days`);
+
+  await prisma.participant.create({
+    data: {
+        name: 'Hello, world!',
+        email: 'test@test.org',
+        phone: '987654',
+        emergencyContact: '123456',
+    }
+  });
+
+  const participants = await prisma.participant.findMany();
+  console.log(participants);
 } 

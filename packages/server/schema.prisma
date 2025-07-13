@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Participant {
+    id                  Int         @id @default(autoincrement())
+    name                String      @db.VarChar(255)
+    email               String      @db.VarChar(255)
+    phone               String?     @db.VarChar(15)
+    emergencyContact    String      @db.VarChar(15)   
+    dietaryRestrictions String?     @db.Text
+    notes               String?     @db.Text
+    medic               Boolean     @default(false)
+    peacekeeper         Boolean     @default(false)
+}
