@@ -1,80 +1,112 @@
 import React, { useState } from 'react';
-import { useMarchData } from '../context/MarchContext';
-import { Vehicle, VehicleDaySchedule, Marcher } from '../types';
 import { Truck, User, Phone, FileText, Plus, X, Save, Edit, Trash2, Hash } from 'lucide-react';
+import {
+  useMarches,
+  useMarchDay,
+  useMarchers,
+  useVehicles,
+  useVehicleDaySchedules,
+  useCreateVehicleDaySchedule,
+  useDeleteVehicleDaySchedule
+} from '../hooks/useMarchData';
+import { Vehicle, Marcher, VehicleDaySchedule } from '@march-organizer/shared';
+import { getEntityById } from '../utils/entityMapping';
 
 interface DayVehicleScheduleProps {
   dayId: string;
 }
 
 const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
-  const { marchData, updateDay } = useMarchData();
+  // Get march data
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // Get day, vehicles, marchers, and vehicle schedules
+  const { data: dayData } = useMarchDay(dayId);
+  const { data: marchersData } = useMarchers(marchId);
+  const { data: vehiclesData } = useVehicles(marchId);
+  const { data: vehicleSchedulesData } = useVehicleDaySchedules(dayId);
+
+  // Mutations
+  const createVehicleDayScheduleMutation = useCreateVehicleDaySchedule();
+  const deleteVehicleDayScheduleMutation = useDeleteVehicleDaySchedule();
+
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newSchedule, setNewSchedule] = useState<Partial<VehicleDaySchedule>>({});
 
-  const day = marchData.days.find(d => d.id === dayId);
+  const day = dayData?.data;
+  const marchers = marchersData?.data || [];
+  const vehicles = vehiclesData?.data || [];
+  const vehicleSchedules = vehicleSchedulesData?.data || [];
+  
   if (!day) return null;
 
-  const availableVehicles = marchData.vehicles.filter(vehicle => 
-    vehicle.vehicleDays?.includes(dayId)
-  );
-
-  const availableMarchers = marchData.marchers.filter(marcher => 
-    marcher.marchingDays?.includes(dayId)
-  );
+  // For now, we'll show all vehicles and marchers as available
+  // In the future, this could be filtered based on assignments
+  const availableVehicles = vehicles;
+  const availableMarchers = marchers;
 
   const getVehicleById = (vehicleId: string): Vehicle | undefined => {
-    return marchData.vehicles.find(v => v.id === vehicleId);
+    return getEntityById(vehicles, vehicleId);
   };
 
   const getMarcherById = (marcherId: string): Marcher | undefined => {
-    return marchData.marchers.find(m => m.id === marcherId);
+    return getEntityById(marchers, marcherId);
   };
 
-  const handleAddSchedule = () => {
-    if (newSchedule.vehicleId && newSchedule.driver && newSchedule.driverContact) {
-      const schedule: VehicleDaySchedule = {
+  const handleAddSchedule = async () => {
+    if (newSchedule.vehicleId && newSchedule.driver && marchId) {
+      const schedule: Omit<VehicleDaySchedule, 'id' | 'version' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> = {
         vehicleId: newSchedule.vehicleId,
+        dayId: dayId,
+        marchId: marchId,
+        startTime: newSchedule.startTime || '09:00',
+        endTime: newSchedule.endTime || '17:00',
+        route: newSchedule.route || 'Main route',
+        purpose: newSchedule.purpose || 'Transport',
         driver: newSchedule.driver,
-        driverContact: newSchedule.driverContact,
         notes: newSchedule.notes || ''
       };
 
-      const updatedDay = {
-        ...day,
-        vehicleSchedules: [...day.vehicleSchedules, schedule]
-      };
-
-      updateDay(dayId, updatedDay);
+      await createVehicleDayScheduleMutation.mutateAsync(schedule);
       setIsAdding(false);
       setNewSchedule({});
     }
   };
 
-  const handleUpdateSchedule = (scheduleIndex: number, updatedSchedule: VehicleDaySchedule) => {
-    const updatedSchedules = [...day.vehicleSchedules];
-    updatedSchedules[scheduleIndex] = updatedSchedule;
+  const handleUpdateSchedule = async (scheduleId: string, updatedSchedule: Partial<VehicleDaySchedule>) => {
+    // For now, we'll delete and recreate since we don't have an update mutation
+    // In the future, add useUpdateVehicleDaySchedule
+    await deleteVehicleDayScheduleMutation.mutateAsync({
+      id: scheduleId,
+      softDelete: true
+    });
+    
+    if (updatedSchedule.vehicleId && updatedSchedule.driver && marchId) {
+      const newSchedule: Omit<VehicleDaySchedule, 'id' | 'version' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> = {
+        vehicleId: updatedSchedule.vehicleId,
+        dayId: dayId,
+        marchId: marchId,
+        startTime: updatedSchedule.startTime || '09:00',
+        endTime: updatedSchedule.endTime || '17:00',
+        route: updatedSchedule.route || 'Main route',
+        purpose: updatedSchedule.purpose || 'Transport',
+        driver: updatedSchedule.driver,
+        notes: updatedSchedule.notes || ''
+      };
 
-    const updatedDay = {
-      ...day,
-      vehicleSchedules: updatedSchedules
-    };
-
-    updateDay(dayId, updatedDay);
+      await createVehicleDayScheduleMutation.mutateAsync(newSchedule);
+    }
     setEditingScheduleId(null);
   };
 
-  const handleDeleteSchedule = (scheduleIndex: number) => {
+  const handleDeleteSchedule = async (scheduleId: string) => {
     if (window.confirm('Are you sure you want to delete this vehicle schedule?')) {
-      const updatedSchedules = day.vehicleSchedules.filter((_, index) => index !== scheduleIndex);
-      
-      const updatedDay = {
-        ...day,
-        vehicleSchedules: updatedSchedules
-      };
-
-      updateDay(dayId, updatedDay);
+      await deleteVehicleDayScheduleMutation.mutateAsync({
+        id: scheduleId,
+        softDelete: true
+      });
     }
   };
 
@@ -111,7 +143,7 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
                 <option value="">Select a vehicle</option>
                 {availableVehicles.map(vehicle => (
                   <option key={vehicle.id} value={vehicle.id}>
-                    {vehicle.name} ({vehicle.licensePlate})
+                    {vehicle.name} ({vehicle.licensePlate || 'No plate'})
                   </option>
                 ))}
               </select>
@@ -133,14 +165,41 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Driver Contact *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+              <input
+                type="time"
+                value={newSchedule.startTime || '09:00'}
+                onChange={(e) => setNewSchedule({ ...newSchedule, startTime: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+              <input
+                type="time"
+                value={newSchedule.endTime || '17:00'}
+                onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Route</label>
               <input
                 type="text"
-                value={newSchedule.driverContact || ''}
-                onChange={(e) => setNewSchedule({ ...newSchedule, driverContact: e.target.value })}
+                value={newSchedule.route || ''}
+                onChange={(e) => setNewSchedule({ ...newSchedule, route: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="Phone number or contact info"
-                required
+                placeholder="Route description"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Purpose</label>
+              <input
+                type="text"
+                value={newSchedule.purpose || ''}
+                onChange={(e) => setNewSchedule({ ...newSchedule, purpose: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="Transport, Support, etc."
               />
             </div>
             <div className="md:col-span-2">
@@ -178,7 +237,7 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
 
       {/* Vehicle Schedules List */}
       <div className="space-y-4">
-        {day.vehicleSchedules.length === 0 ? (
+        {vehicleSchedules.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Truck className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>No vehicles scheduled for this day.</p>
@@ -187,15 +246,15 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
             )}
           </div>
         ) : (
-          day.vehicleSchedules.map((schedule, index) => {
+          vehicleSchedules.map((schedule) => {
             const vehicle = getVehicleById(schedule.vehicleId);
             const driver = getMarcherById(schedule.driver);
-            const isEditing = editingScheduleId === `${schedule.vehicleId}-${index}`;
+            const isEditing = editingScheduleId === schedule.id;
 
             if (!vehicle || !driver) return null;
 
             return (
-              <div key={`${schedule.vehicleId}-${index}`} className="border border-gray-200 rounded-lg p-4">
+              <div key={schedule.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center">
                     <Truck className="h-5 w-5 text-green-600 mr-2" />
@@ -206,13 +265,16 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
                       <>
                         <button
                           onClick={() => {
-                            const updatedSchedule: VehicleDaySchedule = {
+                            const updatedSchedule: Partial<VehicleDaySchedule> = {
                               vehicleId: schedule.vehicleId,
                               driver: schedule.driver,
-                              driverContact: schedule.driverContact,
+                              startTime: schedule.startTime,
+                              endTime: schedule.endTime,
+                              route: schedule.route,
+                              purpose: schedule.purpose,
                               notes: schedule.notes
                             };
-                            handleUpdateSchedule(index, updatedSchedule);
+                            handleUpdateSchedule(schedule.id, updatedSchedule);
                           }}
                           className="text-green-600 hover:text-green-800"
                         >
@@ -228,13 +290,13 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
                     ) : (
                       <>
                         <button
-                          onClick={() => setEditingScheduleId(`${schedule.vehicleId}-${index}`)}
+                          onClick={() => setEditingScheduleId(schedule.id)}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteSchedule(index)}
+                          onClick={() => handleDeleteSchedule(schedule.id)}
                           className="text-red-600 hover:text-red-800"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -248,57 +310,32 @@ const DayVehicleSchedule: React.FC<DayVehicleScheduleProps> = ({ dayId }) => {
                   <div>
                     <div className="flex items-center text-sm text-gray-600 mb-1">
                       <Hash className="h-4 w-4 mr-2" />
-                      <span className="font-medium">License Plate:</span>
+                      Vehicle: {vehicle.licensePlate || 'No plate'}
                     </div>
-                    <p className="text-sm text-gray-900">{vehicle.licensePlate}</p>
-                  </div>
-                  <div>
                     <div className="flex items-center text-sm text-gray-600 mb-1">
                       <User className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Driver:</span>
+                      Driver: {driver.name}
                     </div>
-                    <p className="text-sm text-gray-900">{driver.name}</p>
+                    <div className="flex items-center text-sm text-gray-600 mb-1">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contact: {vehicle.driverPhone}
+                    </div>
                   </div>
                   <div>
                     <div className="flex items-center text-sm text-gray-600 mb-1">
-                      <Phone className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Driver Contact:</span>
-                    </div>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={schedule.driverContact}
-                        onChange={(e) => {
-                          const updatedSchedules = [...day.vehicleSchedules];
-                          updatedSchedules[index] = { ...schedule, driverContact: e.target.value };
-                          const updatedDay = { ...day, vehicleSchedules: updatedSchedules };
-                          updateDay(dayId, updatedDay);
-                        }}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <p className="text-sm text-gray-900">{schedule.driverContact}</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
                       <FileText className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Notes:</span>
+                      Time: {schedule.startTime} - {schedule.endTime}
                     </div>
-                    {isEditing ? (
-                      <textarea
-                        value={schedule.notes}
-                        onChange={(e) => {
-                          const updatedSchedules = [...day.vehicleSchedules];
-                          updatedSchedules[index] = { ...schedule, notes: e.target.value };
-                          const updatedDay = { ...day, vehicleSchedules: updatedSchedules };
-                          updateDay(dayId, updatedDay);
-                        }}
-                        rows={3}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <p className="text-sm text-gray-900">{schedule.notes || 'No notes'}</p>
+                    <div className="flex items-center text-sm text-gray-600 mb-1">
+                      Route: {schedule.route}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 mb-1">
+                      Purpose: {schedule.purpose}
+                    </div>
+                    {schedule.notes && (
+                      <div className="flex items-center text-sm text-gray-600 mb-1">
+                        Notes: {schedule.notes}
+                      </div>
                     )}
                   </div>
                 </div>

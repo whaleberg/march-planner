@@ -126,7 +126,7 @@ export const authRouter = router({
   // Verify token (public - for client-side token validation)
   verifyToken: publicProcedure
     .input(z.object({ token: z.string() }))
-    .mutation(async ({ input }) => {
+    .query(async ({ input }) => {
       try {
         const payload = AuthService.verifyToken(input.token);
         const user = await AuthService.getUserById(payload.userId);

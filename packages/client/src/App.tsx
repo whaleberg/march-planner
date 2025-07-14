@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { MarchProvider } from './context/MarchContext';
 import { AuthProvider } from './context/AuthContext';
 import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -15,6 +14,7 @@ import OrganizationSchedule from './components/OrganizationSchedule';
 import DayManagement from './components/DayManagement';
 import DataManagement from './components/DataManagement';
 import VehicleScheduleByVehicle from './components/VehicleScheduleByVehicle';
+import LegacyContextWrapper from './components/LegacyContextWrapper';
 
 const App: React.FC = () => {
   // Feature flag to switch between old and new implementations
@@ -22,86 +22,96 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>    
-      <MarchProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Navigation />
-          <main>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<OverviewNew />} />
-              <Route path="/overview-new" element={<OverviewNew />} />
-              <Route path="/day/:dayId" element={<DayDetail />} />
-              <Route path="/login" element={<Login />} />
-              {/* Protected Routes - Require Editor Access */}
-              <Route 
-                path="/marchers" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<OverviewNew />} />
+            <Route path="/overview-new" element={<OverviewNew />} />
+            <Route path="/day/:dayId" element={<DayDetail />} />
+            <Route path="/login" element={<Login />} />
+            {/* Protected Routes - Require Editor Access */}
+            <Route 
+              path="/marchers" 
+              element={
+                <ProtectedRoute requireEditor={true}>
                     <MarchersPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/organizations" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/organizations" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <OrganizationsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/vehicles" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/vehicles" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <VehiclesPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/vehicle-schedule" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/vehicle-schedule" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <VehicleScheduleByVehicle />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/marcher-schedule" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
-                    <MarcherSchedule />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/org-schedule" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/marcher-schedule" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <MarcherSchedule />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/org-schedule" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <OrganizationSchedule />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/day-management" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/day-management" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <DayManagement />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/data-management" 
-                element={
-                  <ProtectedRoute requireEditor={true}>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/data-management" 
+              element={
+                <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <DataManagement />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </main>
-        </div>
-        </MarchProvider>
-      </AuthProvider>
+                  </LegacyContextWrapper>
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </main>
+      </div>
+    </AuthProvider>
   );
 };
 

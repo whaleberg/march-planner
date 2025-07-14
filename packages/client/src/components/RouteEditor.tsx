@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RoutePoint, MapCoordinates, Route, MarchDay } from '../types';
 import { geocodeAddress, calculateRoute, initializeGoogleMaps } from '../services/mapsService';
 import Map from './Map';
 import { Plus, Edit, Trash2, Save, X, MapPin, Clock, Navigation, ChevronDown } from 'lucide-react';
 import LocationPreview from './LocationPreview';
-import { useMarchData } from '../context/MarchContext';
+import { getRouteDistance, getRouteWalkingTime } from '../utils/routeCalculations';
+import {useAuth} from "../context/AuthContext";
 
 interface RouteEditorProps {
   route: Route;
@@ -13,7 +14,6 @@ interface RouteEditorProps {
 }
 
 const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready = true }) => {
-  const { getDayDistance, getDayWalkingTime } = useMarchData();
   const [isRouteEditing, setIsRouteEditing] = useState(false);
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>(route.routePoints || []);
   const [editingPoint, setEditingPoint] = useState<RoutePoint | null>(null);
@@ -34,23 +34,14 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
   const [showEditLocationPreview, setShowEditLocationPreview] = useState(false);
   const [editPreviewAddress, setEditPreviewAddress] = useState('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const isUpdatingRef = useRef(false);
 
-  // Create a temporary day object for computing distance and time
-  const tempDay: MarchDay = {
-    id: 'temp',
-    date: '',
-    route: { ...route, routePoints },
-    breakfast: { time: '', location: '', description: '' },
-    lunch: { time: '', location: '', description: '' },
-    dinner: { time: '', location: '', description: '' },
-    specialEvents: [],
-    marchers: [],
-    partnerOrganizations: [],
-    vehicleSchedules: []
-  };
+  // Calculate distance and walking time for the route
+  const computedDistance = getRouteDistance(routePoints);
+  const computedWalkingTime = getRouteWalkingTime(routePoints);
 
-  const computedDistance = getDayDistance(tempDay);
-  const computedWalkingTime = getDayWalkingTime(tempDay);
+  //check if we can edit
+  const {canEdit} = useAuth();
 
   // Sync routePoints with route prop when it changes
   useEffect(() => {
@@ -59,24 +50,32 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
 
   // Auto-populate start/end points from route points
   useEffect(() => {
-    if (!ready) return; // Don't update until ready
+    if (!ready || isUpdatingRef.current) return; // Don't update until ready or if already updating
     
     if (routePoints.length > 0) {
       const startPoint = routePoints.find(p => p.type === 'start');
       const endPoint = routePoints.find(p => p.type === 'end');
       
+      let shouldUpdate = false;
+      let updatedRoute = { ...route };
+      
       if (startPoint && startPoint.address !== route.startPoint) {
-        onRouteUpdate({
-          ...route,
-          startPoint: startPoint.address || startPoint.name
-        });
+        updatedRoute.startPoint = startPoint.address || startPoint.name;
+        shouldUpdate = true;
       }
       
       if (endPoint && endPoint.address !== route.endPoint) {
-        onRouteUpdate({
-          ...route,
-          endPoint: endPoint.address || endPoint.name
-        });
+        updatedRoute.endPoint = endPoint.address || endPoint.name;
+        shouldUpdate = true;
+      }
+      
+      if (shouldUpdate) {
+        isUpdatingRef.current = true;
+        onRouteUpdate(updatedRoute);
+        // Reset the flag after a short delay to allow for state updates
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 100);
       }
     }
   }, [routePoints, route.startPoint, route.endPoint, onRouteUpdate, ready]);
@@ -507,14 +506,16 @@ const RouteEditor: React.FC<RouteEditorProps> = ({ route, onRouteUpdate, ready =
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => setIsRouteEditing(true)}
-                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm"
+              canEdit() ? (   <button
+                  onClick={() => setIsRouteEditing(true)}
+                  className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-4 w-4"/>
                 <span>Edit Route</span>
               </button>
-            )}
+              ) : ""
+            )
+            }
           </div>
         </div>
 

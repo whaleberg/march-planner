@@ -20,8 +20,8 @@ export const useRegister = () => {
   });
 };
 
-export const useVerifyToken = () => {
-  return trpc.auth.verifyToken.useMutation();
+export const useVerifyToken = (token: string, isAuthenticated: boolean) => {
+  return trpc.auth.verifyToken.useQuery({ token }, { enabled: isAuthenticated });
 };
 
 export const useMe = () => {

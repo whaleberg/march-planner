@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, Users, Building2, Edit, Save, X, Plus, Trash2, ChevronLeft, ChevronRight, Stethoscope, Shield, User, Mail, Phone, Crown } from 'lucide-react';
 import { MarchDay, MarcherDayAssignment, OrganizationDayAssignment } from '@march-organizer/shared';
+import { 
+  mapMarchersByAssignments, 
+  mapOrganizationsByAssignments, 
+  getUniqueEntities,
+  getEntityById 
+} from '../utils/entityMapping';
 import { Meal } from '../types';
 import RouteEditor from './RouteEditor';
 import DayVehicleSchedule from './DayVehicleSchedule';
@@ -30,20 +36,10 @@ import { useMarches } from '../hooks/useMarchData';
 
 const DayDetail: React.FC = () => {
   const { dayId } = useParams<{ dayId: string }>() ;
-  const { canEdit } = useAuth();
+  const { canEdit, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedDay, setEditedDay] = useState<MarchDay | null>(null);
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [newEvent, setNewEvent] = useState<Partial<SpecialEvent>>({
-    title: '',
-    time: '',
-    location: '',
-    description: ''
-  });
-
-   
-  // Early return if no dayId
+  
+  // Early return if no dayId - BEFORE any other hooks are called
   if (!dayId) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -58,22 +54,37 @@ const DayDetail: React.FC = () => {
     );
   }
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDay, setEditedDay] = useState<MarchDay | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [newEvent, setNewEvent] = useState<Partial<SpecialEvent>>({
+    title: '',
+    time: '',
+    location: '',
+    description: ''
+  });
+
   // Get march data to find the marchId
   const { data: marchesData } = useMarches();
   const marchId = marchesData?.data?.[0]?.id;
 
-  // tRPC hooks
-  const { data: dayData, isLoading: dayLoading, error: dayError } = useMarchDay(dayId);
+  // Public data - always loaded
+  const { data: dayData, isLoading: dayLoading, error: dayError } = useMarchDay(dayId || '');
   const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
-  const { data: marcherAssignments } = useMarcherDayAssignments(dayId);
-  const { data: organizationAssignments } = useOrganizationDayAssignments(dayId);
-  const { data: dayStats } = useDayStats(dayId);
-  const { data: marchersData } = useMarchers(marchId);
+  const { data: dayStats } = useDayStats(dayId || '');
   const { data: organizationsData } = usePartnerOrganizations(marchId);
-  
 
+  // Private data - only loaded when authenticated
+  const { data: marcherAssignments } = useMarcherDayAssignments(
+    isAuthenticated ? dayId : undefined
+  );
+  const { data: marchersData } = useMarchers(
+    isAuthenticated ? marchId : undefined
+  );
+  const { data: organizationAssignments } = useOrganizationDayAssignments(
+    isAuthenticated ? dayId : undefined
+  );
 
-  
   // Mutations
   const updateMarchDayMutation = useUpdateMarchDay();
 
@@ -109,24 +120,36 @@ const DayDetail: React.FC = () => {
   
 
   
-  // Get marchers who are scheduled for this day
+  // Get marchers who are scheduled for this day (only if authenticated)
   const dayMarchers = marcherAssignments?.data || [];
   const marchers = marchersData?.data || [];
+  
+  // Use generic mapping functions to get unique assignments for this day
+  const marcherMappings = mapMarchersByAssignments(marchers, dayMarchers, { dayId });
+  const uniqueDayMarchers = marcherMappings.filter((mapping, index, self) => 
+    index === self.findIndex(m => m.relationship.marcherId === mapping.relationship.marcherId)
+  ).map(mapping => mapping.relationship);
   
   // Get organizations who are scheduled for this day
   const dayPartners = organizationAssignments?.data || [];
   const organizations = organizationsData?.data || [];
   
+  // Use generic mapping functions to get unique assignments for this day
+  const organizationMappings = mapOrganizationsByAssignments(organizations, dayPartners, { dayId });
+  const uniqueDayPartners = organizationMappings.filter((mapping, index, self) => 
+    index === self.findIndex(o => o.relationship.organizationId === mapping.relationship.organizationId)
+  ).map(mapping => mapping.relationship);
+  
 
   
   // Helper function to get marcher data by ID
   const getMarcherById = (marcherId: string) => {
-    return marchers.find(m => m.id === marcherId);
+    return getEntityById(marchers, marcherId);
   };
   
   // Helper function to get organization data by ID
   const getOrganizationById = (organizationId: string) => {
-    return organizations.find(o => o.id === organizationId);
+    return getEntityById(organizations, organizationId);
   };
 
   // Helper functions to count medics and peacekeepers for this day
@@ -162,59 +185,18 @@ const DayDetail: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [prevDay, nextDay, navigate]);
 
-  // Show loading state if data is not ready
-  if (dayLoading || daysLoading || !day) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading day data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (dayError) {
-    console.error('DayDetail Error:', dayError);
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Day</h1>
-          <p className="text-gray-600 mb-4">There was an error loading the day data: {dayError.message}</p>
-          <Link to="/" className="text-blue-600 hover:text-blue-800">
-            ← Back to Overview
-          </Link>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!day) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Day Not Found</h1>
-          <p className="text-gray-600 mb-4">The requested day could not be found.</p>
-          <Link to="/" className="text-blue-600 hover:text-blue-800">
-            ← Back to Overview
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   const handleEdit = () => {
     // Deep copy the day object to prevent sharing references
     const deepCopy = {
-      ...day,
-      id: day.id, // Ensure the id is preserved
+      ...day!,
+      id: day!.id, // Ensure the id is preserved
       route: {
-        ...day.route,
-        routePoints: [...(day.route.routePoints || [])] // Deep copy the routePoints array
+        ...day!.route,
+        routePoints: [...(day!.route.routePoints || [])] // Deep copy the routePoints array
       },
-      specialEvents: [...day.specialEvents], // Deep copy special events array
+      specialEvents: [...day!.specialEvents], // Deep copy special events array
     };
     setEditedDay(deepCopy);
     setIsEditing(true);
@@ -300,7 +282,7 @@ const DayDetail: React.FC = () => {
     });
   };
 
-  const handleRouteUpdate = (updatedRoute: any) => {
+  const handleRouteUpdate = useCallback((updatedRoute: any) => {
     // Deep copy the route to prevent sharing references
     const deepCopiedRoute = {
       ...updatedRoute,
@@ -309,11 +291,11 @@ const DayDetail: React.FC = () => {
     };
     
     // Use editedDay if available, otherwise use the original day
-    const baseDay = editedDay || day;
+    const baseDay = editedDay || day!;
     
     const updatedDay = {
       ...baseDay,
-      id: day.id, // Ensure the id is preserved
+      id: day!.id, // Ensure the id is preserved
       date: baseDay.date, // Ensure the date is preserved
       route: deepCopiedRoute
     };
@@ -325,10 +307,53 @@ const DayDetail: React.FC = () => {
     
     // Automatically save the route changes to the main data
     // updateDay(day.id, updatedDay); // This line was removed as per the new_code
-  };
+  }, [editedDay, day, isEditing]);
 
-  const currentDay = isEditing && editedDay ? editedDay : day;
+  const currentDay = isEditing && editedDay ? editedDay : day!;
   const dayNumber = dayIndex + 1; // Calculate day number from index
+
+  // Show loading state if data is not ready
+  if (dayLoading || daysLoading || !day) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading day data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (dayError) {
+    console.error('DayDetail Error:', dayError);
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Day</h1>
+          <p className="text-gray-600 mb-4">There was an error loading the day data: {dayError.message}</p>
+          <Link to="/" className="text-blue-600 hover:text-blue-800">
+            ← Back to Overview
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!day) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Day Not Found</h1>
+          <p className="text-gray-600 mb-4">The requested day could not be found.</p>
+          <Link to="/" className="text-blue-600 hover:text-blue-800">
+            ← Back to Overview
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -557,16 +582,16 @@ const DayDetail: React.FC = () => {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 >
                   <option value="">No march leader assigned</option>
-                  {dayMarchers.map((marcherAssignment) => {
+                  {uniqueDayMarchers.map((marcherAssignment) => {
                     const marcher = getMarcherById(marcherAssignment.marcherId);
                     return (
-                      <option key={marcherAssignment.marcherId} value={marcherAssignment.marcherId}>
+                      <option key={marcherAssignment.id} value={marcherAssignment.marcherId}>
                         {marcher?.name || 'Unknown Marcher'}
                       </option>
                     );
                   })}
                 </select>
-                {dayMarchers.length === 0 && (
+                {uniqueDayMarchers.length === 0 && (
                   <p className="text-sm text-gray-500 mt-2">No marchers scheduled for this day</p>
                 )}
               </div>
@@ -834,17 +859,27 @@ const DayDetail: React.FC = () => {
                 </Link>
               )}
             </div>
-            {dayMarchers.length === 0 ? (
+            {!isAuthenticated ? (
+              // Show public view for unauthenticated users
+              <div className="text-center py-4">
+                <p className="text-gray-600 text-sm">
+                  {getDayMarcherCount()} marcher{getDayMarcherCount() !== 1 ? 's' : ''} participating
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Sign in to view participant details
+                </p>
+              </div>
+            ) : uniqueDayMarchers.length === 0 ? (
               <p className="text-gray-500 text-sm">No marchers scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
                 {canEdit() ? (
-                  // Show full marcher list for authenticated users
-                  dayMarchers.map((marcherAssignment) => {
+                  // Show full marcher list for authenticated users with edit permissions
+                  uniqueDayMarchers.map((marcherAssignment) => {
                     const marcher = getMarcherById(marcherAssignment.marcherId);
                     if (!marcher) return null;
                     return (
-                      <div key={marcherAssignment.marcherId} className="border-l-4 border-purple-500 pl-3">
+                      <div key={marcherAssignment.id} className="border-l-4 border-purple-500 pl-3">
                         <h3 className="font-medium text-gray-900">{marcher.name}</h3>
                         <p className="text-sm text-gray-600">{marcher.email}</p>
                         {/* Training Badges */}
@@ -871,15 +906,37 @@ const DayDetail: React.FC = () => {
                     );
                   })
                 ) : (
-                  // Show only count and message for public users
-                  <div className="text-center py-4">
-                    <p className="text-gray-600 text-sm">
-                      {dayMarchers.length} marcher{dayMarchers.length !== 1 ? 's' : ''} participating
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Sign in to view participant details
-                    </p>
-                  </div>
+                  // Show marcher list for authenticated users without edit permissions
+                  uniqueDayMarchers.map((marcherAssignment) => {
+                    const marcher = getMarcherById(marcherAssignment.marcherId);
+                    if (!marcher) return null;
+                    return (
+                      <div key={marcherAssignment.id} className="border-l-4 border-purple-500 pl-3">
+                        <h3 className="font-medium text-gray-900">{marcher.name}</h3>
+                        <p className="text-sm text-gray-600">{marcher.email}</p>
+                        {/* Training Badges */}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {marcher.medic && (
+                            <div className="flex items-center text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                              <Stethoscope className="h-3 w-3 mr-1" />
+                              Medic
+                            </div>
+                          )}
+                          {marcher.peacekeeper && (
+                            <div className="flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Peacekeeper
+                            </div>
+                          )}
+                        </div>
+                        {marcher.dietaryRestrictions && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            Dietary: {marcher.dietaryRestrictions}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -890,7 +947,7 @@ const DayDetail: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 flex items-center">
                 <Building2 className="h-5 w-5 mr-2" />
-                Partner Organizations ({dayPartners.length})
+                Partner Organizations ({isAuthenticated ? uniqueDayPartners.length : 'See details'})
               </h2>
               {canEdit() && (
                 <Link 
@@ -901,15 +958,25 @@ const DayDetail: React.FC = () => {
                 </Link>
               )}
             </div>
-            {dayPartners.length === 0 ? (
+            {!isAuthenticated ? (
+              // Show public view for unauthenticated users
+              <div className="text-center py-4">
+                <p className="text-gray-600 text-sm">
+                  Partner organizations supporting this day
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Sign in to view partner details
+                </p>
+              </div>
+            ) : uniqueDayPartners.length === 0 ? (
               <p className="text-gray-500 text-sm">No partner organizations scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
-                {dayPartners.map((orgAssignment) => {
+                {uniqueDayPartners.map((orgAssignment) => {
                   const organization = getOrganizationById(orgAssignment.organizationId);
                   if (!organization) return null;
                   return (
-                    <div key={orgAssignment.organizationId} className="border-l-4 border-orange-500 pl-3">
+                    <div key={orgAssignment.id} className="border-l-4 border-orange-500 pl-3">
                       <h3 className="font-medium text-gray-900">{organization.name}</h3>
                       <p className="text-sm text-gray-600">{organization.description}</p>
                       {organization.contactPerson && (
