@@ -29,7 +29,7 @@ import {
 import { useMarches } from '../hooks/useMarchData';
 
 const DayDetail: React.FC = () => {
-  const { dayId } = useParams<{ dayId: string }>();
+  const { dayId } = useParams<{ dayId: string }>() ;
   const { canEdit } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -42,21 +42,7 @@ const DayDetail: React.FC = () => {
     description: ''
   });
 
-  // Get march data to find the marchId
-  const { data: marchesData } = useMarches();
-  const marchId = marchesData?.data?.[0]?.id;
-
-  // tRPC hooks
-  const { data: dayData, isLoading: dayLoading, error: dayError } = useMarchDay(dayId || '');
-  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
-  const { data: marcherAssignments } = useMarcherDayAssignments(dayId);
-  const { data: organizationAssignments } = useOrganizationDayAssignments(dayId);
-  const { data: dayStats } = useDayStats(marchId || '', dayId || '');
-  const { data: marchersData } = useMarchers(marchId);
-  const { data: organizationsData } = usePartnerOrganizations(marchId);
-  
-
-  
+   
   // Early return if no dayId
   if (!dayId) {
     return (
@@ -71,6 +57,22 @@ const DayDetail: React.FC = () => {
       </div>
     );
   }
+
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // tRPC hooks
+  const { data: dayData, isLoading: dayLoading, error: dayError } = useMarchDay(dayId);
+  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
+  const { data: marcherAssignments } = useMarcherDayAssignments(dayId);
+  const { data: organizationAssignments } = useOrganizationDayAssignments(dayId);
+  const { data: dayStats } = useDayStats(dayId);
+  const { data: marchersData } = useMarchers(marchId);
+  const { data: organizationsData } = usePartnerOrganizations(marchId);
+  
+
+
   
   // Mutations
   const updateMarchDayMutation = useUpdateMarchDay();
@@ -129,11 +131,15 @@ const DayDetail: React.FC = () => {
 
   // Helper functions to count medics and peacekeepers for this day
   const getDayMedicCount = () => {
-    return dayStats?.medics || 0;
+    return dayStats?.data.medics || 0;
   };
 
   const getDayPeacekeeperCount = () => {
-    return dayStats?.peacekeepers || 0;
+    return dayStats?.data.peacekeepers || 0;
+  };
+
+  const getDayMarcherCount = () => {
+    return dayStats?.data.marchers || 0;
   };
 
   // Helper function to get the march leader marcher
@@ -800,7 +806,7 @@ const DayDetail: React.FC = () => {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center">
                   <Users className="h-5 w-5 mr-2" />
-                  Marchers ({dayMarchers.length})
+                  Marchers ({getDayMarcherCount()})
                 </h2>
                 {(getDayMedicCount() > 0 || getDayPeacekeeperCount() > 0) && (
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">

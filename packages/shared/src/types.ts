@@ -319,6 +319,21 @@ export interface LoginCredentials {
   password: string;
 }
 
+//Types used in the server
+export interface TotalMarchersCount {
+  total: number;
+  medics: number;
+  peacekeepers: number;
+}
+
+export interface DaySummary {
+  dayId: string;
+  date: string;
+  marchers: number;
+  medics: number;
+  peacekeepers: number;
+}
+
 // View mode types for scheduling components
 export type ViewMode = 'by-day' | 'by-marcher' | 'by-organization' | 'by-vehicle';
 export type MarcherViewMode = 'by-day' | 'by-marcher';

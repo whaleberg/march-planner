@@ -255,8 +255,6 @@ export const useMarchStats = (marchId: string) => {
   return trpc.summary.marchers.useQuery({ marchId });
 };
 
-export const useDayStats = (marchId: string, dayId: string) => {
-  const data = trpc.summary.marchersByDay.useQuery({ marchId });
-  const dayStats = data.data?.find((day: any) => day.dayId === dayId);
-  return dayStats;
-}; 
+export const useDayStats = (dayId: string)=>  {
+  return trpc.summary.marchersByDay.useQuery({ dayId })
+};
