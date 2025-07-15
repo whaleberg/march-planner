@@ -1,5 +1,5 @@
 import { dataService } from '../services/dataService';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../prisma/generated/client';
 
 
 export async function initializeSampleData() {
