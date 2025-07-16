@@ -36,7 +36,9 @@ const App: React.FC = () => {
               path="/marchers" 
               element={
                 <ProtectedRoute requireEditor={true}>
+                  <LegacyContextWrapper>
                     <MarchersPage />
+                  </LegacyContextWrapper>
                 </ProtectedRoute>
               } 
             />

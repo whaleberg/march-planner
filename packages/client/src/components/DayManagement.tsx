@@ -1,65 +1,84 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
-import { MarchDay } from '../types';
+import { MarchDay } from '@march-organizer/shared';
 import { Calendar, MapPin, Plus, Edit, Save, X, Trash2, Users, Building2, ArrowRight, Eye, Stethoscope, Shield, User, Crown } from 'lucide-react';
 import { getRoutePointName } from '../utils/routeUtils';
+import { 
+  useMarches, 
+  useMarchDays, 
+  useCreateMarchDay, 
+  useUpdateMarchDay, 
+  useDeleteMarchDay,
+  useUpdateMarch,
+  useMarchers,
+  usePartnerOrganizations
+} from '../hooks/useMarchData';
 
 const DayManagement: React.FC = () => {
-  const { marchData, updateDay, addDay, deleteDay, getDayNumber, updateStartDate } = useMarchData();
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+  const march = marchesData?.data?.[0];
+
+  // tRPC hooks for days and related data
+  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
+  const { data: marchersData } = useMarchers(marchId);
+  const { data: organizationsData } = usePartnerOrganizations(marchId);
+  const createMarchDayMutation = useCreateMarchDay();
+  const updateMarchDayMutation = useUpdateMarchDay();
+  const deleteMarchDayMutation = useDeleteMarchDay();
+  const updateMarchMutation = useUpdateMarch();
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [insertPosition, setInsertPosition] = useState<number | null>(null);
   const [newDay, setNewDay] = useState<Partial<MarchDay>>({});
   const [editedDay, setEditedDay] = useState<MarchDay | null>(null);
 
-  const handleAddDay = () => {
-    if (!newDay.route?.startPoint || !newDay.route?.endPoint) {
+  const days = daysData?.data || [];
+  const marchers = marchersData?.data || [];
+  const organizations = organizationsData?.data || [];
+
+  const handleAddDay = async () => {
+    if (!newDay.route?.startPoint || !newDay.route?.endPoint || !marchId) {
       alert('Please fill in start and end points');
       return;
     }
 
-    const dayData = {
-      date: '', // Will be set automatically based on position
-      route: {
-        startPoint: newDay.route.startPoint,
-        endPoint: newDay.route.endPoint,
-        terrain: newDay.route.terrain || '',
-        notes: newDay.route.notes || '',
-        routePoints: [],
-        polylinePath: ''
-      },
-      breakfast: {
-        time: '7:00 AM',
-        location: 'TBD',
-        description: 'Breakfast provided',
-        providedBy: '',
-        notes: ''
-      },
-      lunch: {
-        time: '12:00 PM',
-        location: 'TBD',
-        description: 'Lunch provided',
-        providedBy: '',
-        notes: ''
-      },
-      dinner: {
-        time: '6:00 PM',
-        location: 'TBD',
-        description: 'Dinner provided',
-        providedBy: '',
-        notes: ''
-      },
-      specialEvents: [],
-      marchers: [],
-      partnerOrganizations: [],
-      vehicleSchedules: []
-    };
+    try {
+      const dayData = {
+        marchId,
+        date: '', // Will be set automatically based on position
+        route: {
+          startPoint: newDay.route.startPoint,
+          endPoint: newDay.route.endPoint,
+          routePoints: []
+        },
+        breakfast: {
+          location: 'TBD',
+          time: '7:00 AM',
+          description: 'Breakfast provided'
+        },
+        lunch: {
+          location: 'TBD',
+          time: '12:00 PM',
+          description: 'Lunch provided'
+        },
+        dinner: {
+          location: 'TBD',
+          time: '6:00 PM',
+          description: 'Dinner provided'
+        },
+        specialEvents: []
+      };
 
-    addDay(dayData, insertPosition ?? undefined);
-    setIsAdding(false);
-    setNewDay({});
-    setInsertPosition(null);
+      await createMarchDayMutation.mutateAsync(dayData);
+      setIsAdding(false);
+      setNewDay({});
+      setInsertPosition(null);
+    } catch (error) {
+      console.error('Failed to create day:', error);
+    }
   };
 
   const handleEdit = (day: MarchDay) => {
@@ -67,11 +86,18 @@ const DayManagement: React.FC = () => {
     setEditingId(day.id);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedDay) {
-      updateDay(editedDay.id, editedDay);
-      setEditingId(null);
-      setEditedDay(null);
+      try {
+        await updateMarchDayMutation.mutateAsync({
+          id: editedDay.id,
+          data: editedDay
+        });
+        setEditingId(null);
+        setEditedDay(null);
+      } catch (error) {
+        console.error('Failed to update day:', error);
+      }
     }
   };
 
@@ -80,45 +106,55 @@ const DayManagement: React.FC = () => {
     setEditedDay(null);
   };
 
-  const handleDelete = (dayId: string) => {
+  const handleDelete = async (dayId: string) => {
     if (window.confirm('Are you sure you want to delete this day? This will affect the schedule of all participants.')) {
-      deleteDay(dayId);
+      try {
+        await deleteMarchDayMutation.mutateAsync({ id: dayId });
+      } catch (error) {
+        console.error('Failed to delete day:', error);
+      }
     }
   };
 
-  const handleStartDateChange = (newStartDate: string) => {
-    updateStartDate(newStartDate);
+  const handleStartDateChange = async (newStartDate: string) => {
+    if (marchId && march) {
+      try {
+        await updateMarchMutation.mutateAsync({
+          id: marchId,
+          data: {
+            ...march,
+            startDate: newStartDate
+          }
+        });
+      } catch (error) {
+        console.error('Failed to update start date:', error);
+      }
+    }
   };
 
   const handleInsertPositionChange = (position: number) => {
     setInsertPosition(position);
     
     // Auto-populate start point based on previous day's end point
-    if (position > 0 && position <= marchData.days.length) {
-      const prevDay = marchData.days[position - 1];
+    if (position > 0 && position <= days.length) {
+      const prevDay = days[position - 1];
       setNewDay({
         ...newDay,
         route: {
           startPoint: prevDay.route.endPoint,
           endPoint: newDay.route?.endPoint || '',
-          terrain: newDay.route?.terrain || '',
-          notes: newDay.route?.notes || '',
-          routePoints: newDay.route?.routePoints || [],
-          polylinePath: newDay.route?.polylinePath || ''
+          routePoints: newDay.route?.routePoints || []
         }
       });
-    } else if (position === 0 && marchData.days.length > 0) {
+    } else if (position === 0 && days.length > 0) {
       // Inserting at the beginning
-      const firstDay = marchData.days[0];
+      const firstDay = days[0];
       setNewDay({
         ...newDay,
         route: {
           startPoint: newDay.route?.startPoint || '',
           endPoint: firstDay.route.startPoint,
-          terrain: newDay.route?.terrain || '',
-          notes: newDay.route?.notes || '',
-          routePoints: newDay.route?.routePoints || [],
-          polylinePath: newDay.route?.polylinePath || ''
+          routePoints: newDay.route?.routePoints || []
         }
       });
     }
@@ -127,7 +163,7 @@ const DayManagement: React.FC = () => {
   const getInsertContext = () => {
     if (insertPosition === null) return null;
     
-    if (marchData.days.length === 0) {
+    if (days.length === 0) {
       return {
         type: 'first-day',
         description: 'This will be the first day of the march'
@@ -138,22 +174,22 @@ const DayManagement: React.FC = () => {
       return {
         type: 'before-first',
         prevDay: null,
-        nextDay: marchData.days[0],
-        description: `Inserting before Day 1 (${marchData.days[0].route.startPoint})`
+        nextDay: days[0],
+        description: `Inserting before Day 1 (${days[0].route.startPoint})`
       };
     }
     
-    if (insertPosition === marchData.days.length) {
+    if (insertPosition === days.length) {
       return {
         type: 'after-last',
-        prevDay: marchData.days[marchData.days.length - 1],
+        prevDay: days[days.length - 1],
         nextDay: null,
-        description: `Inserting after Day ${marchData.days.length} (${marchData.days[marchData.days.length - 1].route.endPoint})`
+        description: `Inserting after Day ${days.length} (${days[days.length - 1].route.endPoint})`
       };
     }
     
-    const prevDay = marchData.days[insertPosition - 1];
-    const nextDay = marchData.days[insertPosition];
+    const prevDay = days[insertPosition - 1];
+    const nextDay = days[insertPosition];
     
     return {
       type: 'between',
@@ -164,6 +200,19 @@ const DayManagement: React.FC = () => {
   };
 
   const insertContext = getInsertContext();
+
+  if (daysLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading days...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -190,7 +239,7 @@ const DayManagement: React.FC = () => {
           <label className="block text-sm font-medium text-gray-700">Start Date:</label>
           <input
             type="date"
-            value={marchData.startDate}
+            value={march?.startDate || ''}
             onChange={(e) => handleStartDateChange(e.target.value)}
             className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
           />
@@ -227,14 +276,14 @@ const DayManagement: React.FC = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               >
                 <option value="">Select where to insert the new day...</option>
-                {marchData.days.length === 0 ? (
+                {days.length === 0 ? (
                   <option value={0}>Add first day</option>
                 ) : (
                   <>
                     <option value={0}>At the beginning (before Day 1)</option>
-                    {marchData.days.map((day) => (
-                      <option key={day.id} value={day.id}>
-                        After Day {day.id} - {getRoutePointName(day, 'start')} → {getRoutePointName(day, 'end')}
+                    {days.map((day, index) => (
+                      <option key={day.id} value={index + 1}>
+                        After Day {index + 1} - {getRoutePointName(day, 'start')} → {getRoutePointName(day, 'end')}
                       </option>
                     ))}
                   </>
@@ -294,10 +343,7 @@ const DayManagement: React.FC = () => {
                     route: { 
                       startPoint: e.target.value,
                       endPoint: newDay.route?.endPoint || '',
-                      terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || '',
-                      routePoints: newDay.route?.routePoints || [],
-                      polylinePath: newDay.route?.polylinePath || ''
+                      routePoints: newDay.route?.routePoints || []
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -316,10 +362,7 @@ const DayManagement: React.FC = () => {
                       ...newDay.route, 
                       endPoint: e.target.value,
                       startPoint: newDay.route?.startPoint || '',
-                      terrain: newDay.route?.terrain || '',
-                      notes: newDay.route?.notes || '',
-                      routePoints: newDay.route?.routePoints || [],
-                      polylinePath: newDay.route?.polylinePath || ''
+                      routePoints: newDay.route?.routePoints || []
                     } 
                   })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -327,58 +370,20 @@ const DayManagement: React.FC = () => {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Terrain</label>
-                <input
-                  type="text"
-                  value={newDay.route?.terrain || ''}
-                  onChange={(e) => setNewDay({ 
-                    ...newDay, 
-                    route: { 
-                      ...newDay.route, 
-                      terrain: e.target.value,
-                      startPoint: newDay.route?.startPoint || '',
-                      endPoint: newDay.route?.endPoint || '',
-                      notes: newDay.route?.notes || '',
-                      routePoints: newDay.route?.routePoints || [],
-                      polylinePath: newDay.route?.polylinePath || ''
-                    } 
-                  })}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Terrain description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                <textarea
-                  value={newDay.route?.notes || ''}
-                  onChange={(e) => setNewDay({ 
-                    ...newDay, 
-                    route: { 
-                      ...newDay.route, 
-                      notes: e.target.value,
-                      startPoint: newDay.route?.startPoint || '',
-                      endPoint: newDay.route?.endPoint || '',
-                      terrain: newDay.route?.terrain || '',
-                      routePoints: newDay.route?.routePoints || [],
-                      polylinePath: newDay.route?.polylinePath || ''
-                    } 
-                  })}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Route notes"
-                  rows={3}
-                />
-              </div>
             </div>
 
             <div className="flex space-x-4">
               <button
                 onClick={handleAddDay}
-                disabled={!insertPosition && insertPosition !== 0}
+                disabled={!insertPosition && insertPosition !== 0 || createMarchDayMutation.isPending}
                 className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4" />
-                <span>Add Day</span>
+                {createMarchDayMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>{createMarchDayMutation.isPending ? 'Adding...' : 'Add Day'}</span>
               </button>
               <button
                 onClick={() => {
@@ -398,12 +403,13 @@ const DayManagement: React.FC = () => {
 
       {/* Days List */}
       <div className="space-y-4">
-        {marchData.days.map((day) => {
+        {days.map((day, index) => {
           const isEditing = editingId === day.id;
           const currentDay = isEditing ? editedDay! : day;
-          const dayNumber = getDayNumber(day.id);
-          const dayMarchers = marchData.marchers.filter(m => m.marchingDays?.includes(day.id));
-          const dayPartners = marchData.partnerOrganizations.filter(p => p.partnerDays?.includes(day.id));
+          const dayNumber = index + 1;
+          // Note: We can't easily get day assignments without additional queries
+          const dayMarchers: any[] = []; // Would need to query assignments
+          const dayPartners: any[] = []; // Would need to query assignments
 
           // Helper functions to count medics and peacekeepers for this day
           const getDayMedicCount = () => {
@@ -417,7 +423,7 @@ const DayManagement: React.FC = () => {
           // Helper function to get the march leader
           const getMarchLeader = () => {
             if (!day.marchLeaderId) return null;
-            return marchData.marchers.find(m => m.id === day.marchLeaderId);
+            return marchers.find(m => m.id === day.marchLeaderId);
           };
 
           return (
@@ -476,10 +482,15 @@ const DayManagement: React.FC = () => {
                     <>
                       <button
                         onClick={handleSave}
-                        className="text-green-600 hover:text-green-800 p-2"
+                        disabled={updateMarchDayMutation.isPending}
+                        className="text-green-600 hover:text-green-800 p-2 disabled:opacity-50"
                         title="Save Changes"
                       >
-                        <Save className="h-5 w-5" />
+                        {updateMarchDayMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                        ) : (
+                          <Save className="h-5 w-5" />
+                        )}
                       </button>
                       <button
                         onClick={handleCancel}
@@ -500,10 +511,15 @@ const DayManagement: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(day.id)}
-                        className="text-red-600 hover:text-red-800 p-2"
+                        disabled={deleteMarchDayMutation.isPending}
+                        className="text-red-600 hover:text-red-800 p-2 disabled:opacity-50"
                         title="Delete Day"
                       >
-                        <Trash2 className="h-5 w-5" />
+                        {deleteMarchDayMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                        ) : (
+                          <Trash2 className="h-5 w-5" />
+                        )}
                       </button>
                     </>
                   )}

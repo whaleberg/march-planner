@@ -1,26 +1,50 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
 import { Marcher } from '../types';
 import { Users, Edit, Save, X, Plus, Trash2, Mail, Phone, User, Calendar, Heart, Shield, Stethoscope } from 'lucide-react';
+import { 
+  useMarches, 
+  useMarchers, 
+  useCreateMarcher, 
+  useUpdateMarcher, 
+  useDeleteMarcher 
+} from '../hooks/useMarchData';
 
 const MarchersPage: React.FC = () => {
-  const { marchData, updateMarcher, addMarcher, deleteMarcher } = useMarchData();
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // tRPC hooks for marchers
+  const { data: marchersData, isLoading } = useMarchers(marchId);
+  const createMarcherMutation = useCreateMarcher();
+  const updateMarcherMutation = useUpdateMarcher();
+  const deleteMarcherMutation = useDeleteMarcher();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedMarcher, setEditedMarcher] = useState<Marcher | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMarcher, setNewMarcher] = useState<Partial<Marcher>>({});
+
+  const marchers = marchersData?.data || [];
 
   const handleEdit = (marcher: Marcher) => {
     setEditedMarcher({ ...marcher });
     setEditingId(marcher.id);
   };
 
-  const handleSave = () => {
-    if (editedMarcher) {
-      updateMarcher(editedMarcher.id, editedMarcher);
-      setEditingId(null);
-      setEditedMarcher(null);
+  const handleSave = async () => {
+    if (editedMarcher && marchId) {
+      try {
+        await updateMarcherMutation.mutateAsync({
+          id: editedMarcher.id,
+          data: editedMarcher
+        });
+        setEditingId(null);
+        setEditedMarcher(null);
+      } catch (error) {
+        console.error('Failed to update marcher:', error);
+      }
     }
   };
 
@@ -29,30 +53,51 @@ const MarchersPage: React.FC = () => {
     setEditedMarcher(null);
   };
 
-  const handleAdd = () => {
-    if (newMarcher.name && newMarcher.email) {
-      const marcher: Marcher = {
-        id: `marcher-${Date.now()}`,
-        name: newMarcher.name,
-        email: newMarcher.email,
-        phone: newMarcher.phone || '',
-        emergencyContact: newMarcher.emergencyContact || '',
-        dietaryRestrictions: newMarcher.dietaryRestrictions || '',
-        notes: newMarcher.notes || '',
-        medic: newMarcher.medic || false,
-        peacekeeper: newMarcher.peacekeeper || false
-      };
-      addMarcher(marcher);
-      setIsAdding(false);
-      setNewMarcher({});
+  const handleAdd = async () => {
+    if (newMarcher.name && newMarcher.email && marchId) {
+      try {
+        const marcherData = {
+          name: newMarcher.name,
+          email: newMarcher.email,
+          phone: newMarcher.phone || '',
+          emergencyContact: newMarcher.emergencyContact || '',
+          dietaryRestrictions: newMarcher.dietaryRestrictions || '',
+          notes: newMarcher.notes || '',
+          medic: newMarcher.medic || false,
+          peacekeeper: newMarcher.peacekeeper || false
+        };
+
+        await createMarcherMutation.mutateAsync(marcherData);
+        setIsAdding(false);
+        setNewMarcher({});
+      } catch (error) {
+        console.error('Failed to create marcher:', error);
+      }
     }
   };
 
-  const handleDelete = (marcherId: string) => {
+  const handleDelete = async (marcherId: string) => {
     if (window.confirm('Are you sure you want to delete this marcher?')) {
-      deleteMarcher(marcherId);
+      try {
+        await deleteMarcherMutation.mutateAsync({ id: marcherId });
+      } catch (error) {
+        console.error('Failed to delete marcher:', error);
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading marchers...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -180,10 +225,15 @@ const MarchersPage: React.FC = () => {
           <div className="flex space-x-4 mt-6">
             <button
               onClick={handleAdd}
-              className="btn-primary flex items-center space-x-2"
+              disabled={createMarcherMutation.isPending}
+              className="btn-primary flex items-center space-x-2 disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
-              <span>Join the March</span>
+              {createMarcherMutation.isPending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{createMarcherMutation.isPending ? 'Adding...' : 'Join the March'}</span>
             </button>
             <button
               onClick={() => {
@@ -201,7 +251,7 @@ const MarchersPage: React.FC = () => {
 
       {/* Marchers List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {marchData.marchers.map((marcher) => {
+        {marchers.map((marcher) => {
           const isEditing = editingId === marcher.id;
           const currentMarcher = isEditing ? editedMarcher! : marcher;
 
@@ -228,9 +278,14 @@ const MarchersPage: React.FC = () => {
                     <>
                       <button
                         onClick={handleSave}
-                        className="text-green-600 hover:text-green-800 p-1"
+                        disabled={updateMarcherMutation.isPending}
+                        className="text-green-600 hover:text-green-800 p-1 disabled:opacity-50"
                       >
-                        <Save className="h-4 w-4" />
+                        {updateMarcherMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={handleCancel}
@@ -249,9 +304,14 @@ const MarchersPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(marcher.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        disabled={deleteMarcherMutation.isPending}
+                        className="text-red-600 hover:text-red-800 p-1 disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deleteMarcherMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </>
                   )}
@@ -353,12 +413,7 @@ const MarchersPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Schedule Summary */}
-                {marcher.marchingDays && marcher.marchingDays.length > 0 && (
-                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <span className="font-medium">Scheduled for {marcher.marchingDays.length} day(s)</span>
-                  </div>
-                )}
+                {/* Schedule Summary - Removed since marchingDays not available in tRPC response */}
 
                 {/* View Schedule Button */}
                 <Link

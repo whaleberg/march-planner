@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LoginCredentials } from '../types';
 import { Lock, Eye, EyeOff, Loader } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  // Get the intended destination from location state, or default to home
+  const from = (location.state as any)?.from?.pathname || '/';
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +32,12 @@ const Login: React.FC = () => {
       return;
     }
 
-    await login(credentials);
+    const result = await login(credentials);
+    
+    // If login was successful, redirect to the intended destination
+    if (result.success) {
+      navigate(from, { replace: true });
+    }
   };
 
   const handleInputChange = (field: keyof LoginCredentials, value: string) => {
@@ -40,6 +58,11 @@ const Login: React.FC = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to access editing features
           </p>
+          {from !== '/' && (
+            <p className="mt-1 text-center text-xs text-gray-500">
+              You'll be redirected back to {from === '/' ? 'the overview' : from} after login
+            </p>
+          )}
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

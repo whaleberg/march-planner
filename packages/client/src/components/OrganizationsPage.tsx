@@ -1,26 +1,50 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
 import { PartnerOrganization } from '../types';
 import { Building2, Edit, Save, X, Plus, Trash2, Mail, Phone, Globe, User, Calendar } from 'lucide-react';
+import { 
+  useMarches, 
+  usePartnerOrganizations, 
+  useCreateOrganization, 
+  useUpdateOrganization, 
+  useDeleteOrganization
+} from '../hooks/useMarchData';
 
 const OrganizationsPage: React.FC = () => {
-  const { marchData, updatePartnerOrganization, addPartnerOrganization, deletePartnerOrganization } = useMarchData();
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // tRPC hooks for organizations
+  const { data: organizationsData, isLoading } = usePartnerOrganizations(marchId);
+  const createOrganizationMutation = useCreateOrganization();
+  const updateOrganizationMutation = useUpdateOrganization();
+  const deleteOrganizationMutation = useDeleteOrganization();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedOrg, setEditedOrg] = useState<PartnerOrganization | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newOrg, setNewOrg] = useState<Partial<PartnerOrganization>>({});
+
+  const organizations = organizationsData?.data || [];
 
   const handleEdit = (org: PartnerOrganization) => {
     setEditedOrg({ ...org });
     setEditingId(org.id);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedOrg) {
-      updatePartnerOrganization(editedOrg.id, editedOrg);
-      setEditingId(null);
-      setEditedOrg(null);
+      try {
+        await updateOrganizationMutation.mutateAsync({
+          id: editedOrg.id,
+          data: editedOrg
+        });
+        setEditingId(null);
+        setEditedOrg(null);
+      } catch (error) {
+        console.error('Failed to update organization:', error);
+      }
     }
   };
 
@@ -29,28 +53,49 @@ const OrganizationsPage: React.FC = () => {
     setEditedOrg(null);
   };
 
-  const handleAdd = () => {
-    if (newOrg.name && newOrg.description) {
-      const org: PartnerOrganization = {
-        id: `org-${Date.now()}`,
-        name: newOrg.name,
-        description: newOrg.description,
-        website: newOrg.website || '',
-        contactPerson: newOrg.contactPerson || '',
-        contactEmail: newOrg.contactEmail || '',
-        contactPhone: newOrg.contactPhone || ''
-      };
-      addPartnerOrganization(org);
-      setIsAdding(false);
-      setNewOrg({});
+  const handleAdd = async () => {
+    if (newOrg.name && newOrg.description && marchId) {
+      try {
+        const orgData = {
+          name: newOrg.name,
+          description: newOrg.description,
+          website: newOrg.website || '',
+          contactPerson: newOrg.contactPerson || '',
+          contactEmail: newOrg.contactEmail || '',
+          contactPhone: newOrg.contactPhone || ''
+        };
+
+        await createOrganizationMutation.mutateAsync(orgData);
+        setIsAdding(false);
+        setNewOrg({});
+      } catch (error) {
+        console.error('Failed to create organization:', error);
+      }
     }
   };
 
-  const handleDelete = (orgId: string) => {
+  const handleDelete = async (orgId: string) => {
     if (window.confirm('Are you sure you want to delete this organization?')) {
-      deletePartnerOrganization(orgId);
+      try {
+        await deleteOrganizationMutation.mutateAsync({ id: orgId });
+      } catch (error) {
+        console.error('Failed to delete organization:', error);
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading organizations...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -134,10 +179,15 @@ const OrganizationsPage: React.FC = () => {
           <div className="flex space-x-2 mt-4">
             <button
               onClick={handleAdd}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2"
+              disabled={createOrganizationMutation.isPending}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
-              <span>Add Organization</span>
+              {createOrganizationMutation.isPending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{createOrganizationMutation.isPending ? 'Adding...' : 'Add Organization'}</span>
             </button>
             <button
               onClick={() => {
@@ -155,7 +205,7 @@ const OrganizationsPage: React.FC = () => {
 
       {/* Organizations List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {marchData.partnerOrganizations.map((org) => {
+        {organizations.map((org) => {
           const isEditing = editingId === org.id;
           const currentOrg = isEditing ? editedOrg! : org;
 
@@ -180,9 +230,14 @@ const OrganizationsPage: React.FC = () => {
                     <>
                       <button
                         onClick={handleSave}
-                        className="text-green-600 hover:text-green-800"
+                        disabled={updateOrganizationMutation.isPending}
+                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
                       >
-                        <Save className="h-4 w-4" />
+                        {updateOrganizationMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={handleCancel}
@@ -201,9 +256,14 @@ const OrganizationsPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(org.id)}
-                        className="text-red-600 hover:text-red-800"
+                        disabled={deleteOrganizationMutation.isPending}
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deleteOrganizationMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </>
                   )}
@@ -292,13 +352,7 @@ const OrganizationsPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Schedule Summary */}
-                {org.partnerDays && org.partnerDays.length > 0 && (
-                  <div className="text-sm text-orange-600 mt-3 p-2 bg-orange-50 rounded">
-                    <span className="font-medium">Scheduled for {org.partnerDays.length} day(s)</span>
-                  </div>
-                )}
-
+                {/* Schedule Summary - Removed since partnerDays not available in tRPC response */}
                 {/* View Schedule Button */}
                 <Link
                   to={`/org-schedule?org=${org.id}`}

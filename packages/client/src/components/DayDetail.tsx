@@ -31,8 +31,8 @@ import {
   useDayStats,
   useMarchers,
   usePartnerOrganizations
-} from '../hooks/useMarchData';
-import { useMarches } from '../hooks/useMarchData';
+  } from '../hooks/useMarchData';
+  import { useMarches } from '../hooks/useMarchData';
 
 const DayDetail: React.FC = () => {
   const { dayId } = useParams<{ dayId: string }>() ;
@@ -865,9 +865,13 @@ const DayDetail: React.FC = () => {
                 <p className="text-gray-600 text-sm">
                   {getDayMarcherCount()} marcher{getDayMarcherCount() !== 1 ? 's' : ''} participating
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <Link 
+                  to="/login" 
+                  state={{ from: { pathname: `/day/${dayId}` } }}
+                  className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
+                >
                   Sign in to view participant details
-                </p>
+                </Link>
               </div>
             ) : uniqueDayMarchers.length === 0 ? (
               <p className="text-gray-500 text-sm">No marchers scheduled for this day.</p>
@@ -964,9 +968,13 @@ const DayDetail: React.FC = () => {
                 <p className="text-gray-600 text-sm">
                   Partner organizations supporting this day
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <Link 
+                  to="/login" 
+                  state={{ from: { pathname: `/day/${dayId}` } }}
+                  className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
+                >
                   Sign in to view partner details
-                </p>
+                </Link>
               </div>
             ) : uniqueDayPartners.length === 0 ? (
               <p className="text-gray-500 text-sm">No partner organizations scheduled for this day.</p>

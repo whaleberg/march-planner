@@ -10,9 +10,7 @@ import { authRouter } from './routers/auth.router';
 import { summaryRouter } from './routers/summary.router';
 
 export const appRouter = router({
-  // Legacy routes for backward compatibility
-  greeting: protectedProcedure.query(() => 'hello tRPC v10! You are authenticated!'),
-  
+   
   // Authentication routes
   auth: authRouter,
 
