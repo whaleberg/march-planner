@@ -11,6 +11,9 @@ import {
   useUpdateMarch, 
   useMarchDays, 
   useMarchStats,
+  useDaysSummary,
+  usePartnersSummary,
+  useVehiclesSummary,
 } from '../hooks/useMarchData';
 import { trpc } from '../lib/trpc';
 
@@ -43,19 +46,10 @@ const OverviewNew: React.FC = () => {
   const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
   const { data: summaryData, isLoading: summaryLoading } = useMarchStats(marchId || '');
   
-  // New summary endpoints
-  const { data: daysSummary, isLoading: daysSummaryLoading } = trpc.summary.days.useQuery(
-    { marchId: marchId || '' },
-    { enabled: !!marchId }
-  );
-  const { data: partnersSummary, isLoading: partnersLoading } = trpc.summary.partners.useQuery(
-    { marchId: marchId || '' },
-    { enabled: !!marchId }
-  );
-  const { data: vehiclesSummary, isLoading: vehiclesLoading } = trpc.summary.vehicles.useQuery(
-    { marchId: marchId || '' },
-    { enabled: !!marchId }
-  );
+  // Summary endpoints
+  const { data: daysSummary, isLoading: daysSummaryLoading } = useDaysSummary(marchId || '');
+  const { data: partnersSummary, isLoading: partnersLoading } = usePartnersSummary(marchId || '');
+  const { data: vehiclesSummary, isLoading: vehiclesLoading } = useVehiclesSummary(marchId || '');
 
   // Mutations
   const updateMarchMutation = useUpdateMarch();

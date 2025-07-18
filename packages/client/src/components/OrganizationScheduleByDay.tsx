@@ -1,24 +1,77 @@
 import React, { useState } from 'react';
-import { useMarchData } from '../context/MarchContext';
 import { Building2, Calendar, Mail, X, Save, Clock } from 'lucide-react';
+import {
+  useMarches,
+  useMarchDays,
+  usePartnerOrganizations,
+  useOrganizationDayAssignments,
+  useCreateOrganizationDayAssignment,
+  useDeleteOrganizationDayAssignment
+} from '../hooks/useMarchData';
 
 const OrganizationScheduleByDay: React.FC = () => {
-  const { marchData, updatePartnerOrganization } = useMarchData();
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
 
+  // Get march data
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // Get days and organizations
+  const { data: daysData } = useMarchDays(marchId || '');
+  const { data: organizationsData } = usePartnerOrganizations(marchId);
+
+  // Get all organization assignments for this march
+  const { data: assignmentsData } = useOrganizationDayAssignments(undefined, undefined);
+
+  // Mutations
+  const createAssignmentMutation = useCreateOrganizationDayAssignment();
+  const deleteAssignmentMutation = useDeleteOrganizationDayAssignment();
+
+  const days = daysData?.data || [];
+  const organizations = organizationsData?.data || [];
+  const assignments = assignmentsData?.data || [];
+
   const handleDayToggle = async (orgId: string, dayId: string) => {
-    const org = marchData.partnerOrganizations.find(o => o.id === orgId);
-    if (!org) return;
+    if (!marchId) return;
 
-    const currentDays = org.partnerDays || [];
-    const updatedDays = currentDays.includes(dayId)
-      ? currentDays.filter(id => id !== dayId)
-      : [...currentDays, dayId];
+    // Check if assignment already exists
+    const existingAssignment = assignments.find(
+      a => a.organizationId === orgId && a.dayId === dayId
+    );
 
-    await updatePartnerOrganization(orgId, {
-      ...org,
-      partnerDays: updatedDays
-    });
+    try {
+      if (existingAssignment) {
+        // Remove assignment
+        await deleteAssignmentMutation.mutateAsync({
+          id: existingAssignment.id,
+          softDelete: true
+        });
+      } else {
+        // Create new assignment
+        await createAssignmentMutation.mutateAsync({
+          organizationId: orgId,
+          dayId,
+          marchId,
+          role: 'supporter'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle organization assignment:', error);
+    }
+  };
+
+  const getOrganizationDayCount = (orgId: string) => {
+    return assignments.filter(a => a.organizationId === orgId).length;
+  };
+
+  const isOrganizationOnDay = (orgId: string, dayId: string) => {
+    return assignments.some(a => a.organizationId === orgId && a.dayId === dayId);
+  };
+
+  const getOrganizationDays = (orgId: string) => {
+    return assignments
+      .filter(a => a.organizationId === orgId)
+      .map(a => a.dayId);
   };
 
   const handleSave = () => {
@@ -46,8 +99,9 @@ const OrganizationScheduleByDay: React.FC = () => {
 
       {/* Organizations List */}
       <div className="space-y-6">
-        {marchData.partnerOrganizations.map((org) => {
+        {organizations.map((org) => {
           const isEditing = editingOrgId === org.id;
+          const orgDays = getOrganizationDays(org.id);
 
           return (
             <div key={org.id} className="card p-6">
@@ -63,7 +117,7 @@ const OrganizationScheduleByDay: React.FC = () => {
                       </span>
                       <span className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {org.partnerDays?.length || 0} day{(org.partnerDays?.length || 0) !== 1 ? 's' : ''} assigned
+                        {getOrganizationDayCount(org.id)} day{getOrganizationDayCount(org.id) !== 1 ? 's' : ''} assigned
                       </span>
                     </div>
                   </div>
@@ -102,8 +156,8 @@ const OrganizationScheduleByDay: React.FC = () => {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Assign Days</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {marchData.days.map((day, index) => {
-                      const isAssigned = org.partnerDays?.includes(day.id) || false;
+                    {days.map((day, index) => {
+                      const isAssigned = isOrganizationOnDay(org.id, day.id);
                       return (
                         <label key={day.id} className="flex items-center">
                           <input
@@ -122,11 +176,11 @@ const OrganizationScheduleByDay: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-sm text-gray-600">
-                  {org.partnerDays && org.partnerDays.length > 0 ? (
+                  {orgDays.length > 0 ? (
                     <div className="space-y-1">
-                      {org.partnerDays.map((dayId) => {
-                        const day = marchData.days.find(d => d.id === dayId);
-                        const dayNumber = marchData.days.findIndex(d => d.id === dayId) + 1;
+                      {orgDays.map((dayId) => {
+                        const day = days.find(d => d.id === dayId);
+                        const dayNumber = days.findIndex(d => d.id === dayId) + 1;
                         return day ? (
                           <div key={dayId} className="flex items-center">
                             <Calendar className="h-3 w-3 mr-2" />
@@ -145,7 +199,7 @@ const OrganizationScheduleByDay: React.FC = () => {
         })}
       </div>
 
-      {marchData.partnerOrganizations.length === 0 && (
+      {organizations.length === 0 && (
         <div className="text-center py-12">
           <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations yet</h3>

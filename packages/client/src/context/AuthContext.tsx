@@ -32,53 +32,48 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // tRPC hooks
   const loginMutation = useLogin();
-  const verifyTokenQuery = useVerifyToken();
+  
+  // Get token for verification
+  const token = authService.getAuthToken();
+  const verifyTokenQuery = useVerifyToken(token!, authService.isAuthenticated() )
+
+
+  // Handle token verification result
+  useEffect(() => {
+    if (verifyTokenQuery?.data) {
+      if (verifyTokenQuery.data.valid && verifyTokenQuery.data.user) {
+        // Map server user to client user format
+        const user: User = {
+          id: verifyTokenQuery.data.user.id,
+          username: verifyTokenQuery.data.user.email,
+          email: verifyTokenQuery.data.user.email,
+          role: mapServerRoleToClientRole(verifyTokenQuery.data.user.role),
+          name: `${verifyTokenQuery.data.user.firstName} ${verifyTokenQuery.data.user.lastName}`,
+        };
+        setUser(user);
+        setIsAuthenticated(true);
+      } else {
+        // Token is invalid, clear it
+        authService.logout();
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    }
+  }, [verifyTokenQuery?.data]);
 
   // Initialize auth state on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      setIsLoading(true);
-      
-      try {
-        // Check if user is already authenticated
-        if (authService.isAuthenticated()) {
-          const token = authService.getAuthToken();
-          if (token) {
-            // Use tRPC to validate token
-            const result = await verifyTokenQuery.mutateAsync({ token });
-            if (result.valid && result.user) {
-              // Map server user to client user format
-              const user: User = {
-                id: result.user.id,
-                username: result.user.email,
-                email: result.user.email,
-                role: mapServerRoleToClientRole(result.user.role),
-                name: `${result.user.firstName} ${result.user.lastName}`
-              };
-              setUser(user);
-            } else {
-              // Token is invalid, clear auth state
-              authService.logout();
-              setUser(null);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        authService.logout();
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeAuth();
-  }, [verifyTokenQuery]);
+    if (!token || !authService.isAuthenticated()) {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     setIsLoading(true);
@@ -103,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Save to auth service for localStorage management
         authService.setCurrentUser(user, result.token);
         setUser(user);
+        setIsAuthenticated(true);
         setError(null);
         
         return { success: true, user, token: result.token };
@@ -141,11 +137,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authService.logout();
       setUser(null);
+      setIsAuthenticated(false);
       setError(null);
     } catch (err) {
       console.error('Logout error:', err);
       // Even if logout fails, clear local state
       setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
@@ -169,7 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     error,
     login,

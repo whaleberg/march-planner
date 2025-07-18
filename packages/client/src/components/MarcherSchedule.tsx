@@ -1,49 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useMarchData } from '../context/MarchContext';
 import { Calendar, Users, Check, X, Stethoscope, Shield } from 'lucide-react';
 import { MarcherViewMode } from '../types';
 import MarcherScheduleByDay from './MarcherScheduleByDay';
+import { 
+  useMarches, 
+  useMarchDays, 
+  useMarchers, 
+  useMarcherDayAssignments,
+  useCreateMarcherDayAssignment,
+  useDeleteMarcherDayAssignment
+} from '../hooks/useMarchData';
 
 const MarcherSchedule: React.FC = () => {
-  const { marchData, updateMarcher, getDayNumber } = useMarchData();
   const [selectedMarcher, setSelectedMarcher] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<MarcherViewMode>('by-day');
 
+  // Get march data
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // Get days and marchers
+  const { data: daysData } = useMarchDays(marchId || '');
+  const { data: marchersData } = useMarchers(marchId);
+
+  // Get all marcher assignments for this march
+  const { data: assignmentsData } = useMarcherDayAssignments(undefined, undefined);
+
+  // Mutations
+  const createAssignmentMutation = useCreateMarcherDayAssignment();
+  const deleteAssignmentMutation = useDeleteMarcherDayAssignment();
+
+  const days = daysData?.data || [];
+  const marchers = marchersData?.data || [];
+  const assignments = assignmentsData?.data || [];
+
   // Handle URL parameter for pre-selecting a marcher
   useEffect(() => {
     const marcherId = searchParams.get('marcher');
-    if (marcherId && marchData.marchers.find(m => m.id === marcherId)) {
+    if (marcherId && marchers.find(m => m.id === marcherId)) {
       setSelectedMarcher(marcherId);
     }
-  }, [searchParams, marchData.marchers]);
+  }, [searchParams, marchers]);
 
-  const handleDayToggle = (marcherId: string, dayId: string) => {
-    const marcher = marchData.marchers.find(m => m.id === marcherId);
-    if (!marcher) return;
+  const handleDayToggle = async (marcherId: string, dayId: string) => {
+    if (!marchId) return;
 
-    const updatedMarcher = { ...marcher };
-    const currentDays = updatedMarcher.marchingDays || [];
-    
-    // Remove any duplicates first
-    const uniqueDays = [...new Set(currentDays)];
-    const dayIndex = uniqueDays.indexOf(dayId);
-    
-    if (dayIndex === -1) {
-      // Add day to marcher's schedule
-      updatedMarcher.marchingDays = [...uniqueDays, dayId];
-    } else {
-      // Remove day from marcher's schedule
-      updatedMarcher.marchingDays = uniqueDays.filter(id => id !== dayId);
+    // Check if assignment already exists
+    const existingAssignment = assignments.find(    
+      a => a.marcherId === marcherId && a.dayId === dayId
+    );
+
+    try {
+      if (existingAssignment) {
+        // Remove assignment
+        await deleteAssignmentMutation.mutateAsync({
+          id: existingAssignment.id,
+          softDelete: true
+        });
+      } else {
+        // Create new assignment
+        await createAssignmentMutation.mutateAsync({
+          marcherId,
+          dayId,
+          marchId,
+          role: 'participant'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle marcher assignment:', error);
     }
-
-    updateMarcher(marcherId, updatedMarcher);
   };
 
   const isMarcherOnDay = (marcherId: string, dayId: string) => {
-    const marcher = marchData.marchers.find(m => m.id === marcherId);
-    return marcher?.marchingDays?.includes(dayId) || false;
+    return assignments.some(a => a.marcherId === marcherId && a.dayId === dayId);
+  };
+
+  const getMarcherDayCount = (marcherId: string) => {
+    return assignments.filter(a => a.marcherId === marcherId).length;
+  };
+
+  const getDayNumber = (dayId: string) => {
+    const dayIndex = days.findIndex(d => d.id === dayId);
+    return dayIndex + 1;
   };
 
   // Render the appropriate view based on viewMode
@@ -98,7 +138,7 @@ const MarcherSchedule: React.FC = () => {
               Marchers
             </h2>
             <div className="space-y-2">
-              {marchData.marchers.map((marcher) => (
+              {marchers.map((marcher) => (
                 <button
                   key={marcher.id}
                   onClick={() => setSelectedMarcher(marcher.id)}
@@ -125,9 +165,9 @@ const MarcherSchedule: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  {marcher.marchingDays && marcher.marchingDays.length > 0 && (
+                  {getMarcherDayCount(marcher.id) > 0 && (
                     <div className="text-xs text-blue-600 mt-1">
-                      {marcher.marchingDays.length} day(s) scheduled
+                      {getMarcherDayCount(marcher.id)} day(s) scheduled
                     </div>
                   )}
                 </button>
@@ -144,11 +184,11 @@ const MarcherSchedule: React.FC = () => {
               <div>
                 <div className="mb-4">
                   <h3 className="font-medium text-gray-900">
-                    Scheduling for: {marchData.marchers.find(m => m.id === selectedMarcher)?.name}
+                    Scheduling for: {marchers.find(m => m.id === selectedMarcher)?.name}
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {marchData.days.map((day) => (
+                  {days.map((day) => (
                     <div
                       key={day.id}
                       className={`p-4 rounded-lg border-2 transition-colors cursor-pointer ${

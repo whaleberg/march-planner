@@ -1,4 +1,4 @@
-import { MarchDay } from '../types';
+import { MarchDay } from '@march-organizer/shared';
 
 /**
  * Get readable route point name from a day's route points

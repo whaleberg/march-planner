@@ -1,24 +1,77 @@
 import React, { useState } from 'react';
-import { useMarchData } from '../context/MarchContext';
 import { Users, Calendar, Mail, Stethoscope, Shield, X, Save, Clock } from 'lucide-react';
+import { 
+  useMarches, 
+  useMarchDays, 
+  useMarchers, 
+  useMarcherDayAssignments,
+  useCreateMarcherDayAssignment,
+  useDeleteMarcherDayAssignment
+} from '../hooks/useMarchData';
 
 const MarcherScheduleByDay: React.FC = () => {
-  const { marchData, updateMarcher } = useMarchData();
   const [editingMarcherId, setEditingMarcherId] = useState<string | null>(null);
 
+  // Get march data
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // Get days and marchers
+  const { data: daysData } = useMarchDays(marchId || '');
+  const { data: marchersData } = useMarchers(marchId);
+
+  // Get all marcher assignments for this march
+  const { data: assignmentsData } = useMarcherDayAssignments(undefined, undefined);
+
+  // Mutations
+  const createAssignmentMutation = useCreateMarcherDayAssignment();
+  const deleteAssignmentMutation = useDeleteMarcherDayAssignment();
+
+  const days = daysData?.data || [];
+  const marchers = marchersData?.data || [];
+  const assignments = assignmentsData?.data || [];
+
   const handleDayToggle = async (marcherId: string, dayId: string) => {
-    const marcher = marchData.marchers.find(m => m.id === marcherId);
-    if (!marcher) return;
+    if (!marchId) return;
 
-    const currentDays = marcher.marchingDays || [];
-    const updatedDays = currentDays.includes(dayId)
-      ? currentDays.filter(id => id !== dayId)
-      : [...currentDays, dayId];
+    // Check if assignment already exists
+    const existingAssignment = assignments.find(
+      a => a.marcherId === marcherId && a.dayId === dayId
+    );
 
-    await updateMarcher(marcherId, {
-      ...marcher,
-      marchingDays: updatedDays
-    });
+    try {
+      if (existingAssignment) {
+        // Remove assignment
+        await deleteAssignmentMutation.mutateAsync({
+          id: existingAssignment.id,
+          softDelete: true
+        });
+      } else {
+        // Create new assignment
+        await createAssignmentMutation.mutateAsync({
+          marcherId,
+          dayId,
+          marchId,
+          role: 'participant'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle marcher assignment:', error);
+    }
+  };
+
+  const getMarcherDayCount = (marcherId: string) => {
+    return assignments.filter(a => a.marcherId === marcherId).length;
+  };
+
+  const isMarcherOnDay = (marcherId: string, dayId: string) => {
+    return assignments.some(a => a.marcherId === marcherId && a.dayId === dayId);
+  };
+
+  const getMarcherDays = (marcherId: string) => {
+    return assignments
+      .filter(a => a.marcherId === marcherId)
+      .map(a => a.dayId);
   };
 
   const handleSave = () => {
@@ -46,8 +99,9 @@ const MarcherScheduleByDay: React.FC = () => {
 
       {/* Marchers List */}
       <div className="space-y-6">
-        {marchData.marchers.map((marcher) => {
+        {marchers.map((marcher) => {
           const isEditing = editingMarcherId === marcher.id;
+          const marcherDays = getMarcherDays(marcher.id);
 
           return (
             <div key={marcher.id} className="card p-6">
@@ -63,7 +117,7 @@ const MarcherScheduleByDay: React.FC = () => {
                       </span>
                       <span className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {marcher.marchingDays?.length || 0} day{(marcher.marchingDays?.length || 0) !== 1 ? 's' : ''} assigned
+                        {getMarcherDayCount(marcher.id)} day{getMarcherDayCount(marcher.id) !== 1 ? 's' : ''} assigned
                       </span>
                     </div>
                   </div>
@@ -116,8 +170,8 @@ const MarcherScheduleByDay: React.FC = () => {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Assign Days</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {marchData.days.map((day, index) => {
-                      const isAssigned = marcher.marchingDays?.includes(day.id) || false;
+                    {days.map((day, index) => {
+                      const isAssigned = isMarcherOnDay(marcher.id, day.id);
                       return (
                         <label key={day.id} className="flex items-center">
                           <input
@@ -136,11 +190,11 @@ const MarcherScheduleByDay: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-sm text-gray-600">
-                  {marcher.marchingDays && marcher.marchingDays.length > 0 ? (
+                  {marcherDays.length > 0 ? (
                     <div className="space-y-1">
-                      {marcher.marchingDays.map((dayId) => {
-                        const day = marchData.days.find(d => d.id === dayId);
-                        const dayNumber = marchData.days.findIndex(d => d.id === dayId) + 1;
+                      {marcherDays.map((dayId) => {
+                        const day = days.find(d => d.id === dayId);
+                        const dayNumber = days.findIndex(d => d.id === dayId) + 1;
                         return day ? (
                           <div key={dayId} className="flex items-center">
                             <Calendar className="h-3 w-3 mr-2" />
@@ -159,7 +213,7 @@ const MarcherScheduleByDay: React.FC = () => {
         })}
       </div>
 
-      {marchData.marchers.length === 0 && (
+      {marchers.length === 0 && (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No marchers yet</h3>

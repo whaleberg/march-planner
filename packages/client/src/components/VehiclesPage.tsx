@@ -1,26 +1,53 @@
 import React, { useState } from 'react';
-import { useMarchData } from '../context/MarchContext';
-import { Vehicle } from '../types';
+import { Vehicle } from '@march-organizer/shared';
 import { Truck, Edit, Save, X, Plus, Trash2, Calendar, User, Hash, Clock } from 'lucide-react';
+import { 
+  useMarches, 
+  useVehicles, 
+  useCreateVehicle, 
+  useUpdateVehicle, 
+  useDeleteVehicle,
+  useMarchDays
+} from '../hooks/useMarchData';
 
 const VehiclesPage: React.FC = () => {
-  const { marchData, updateVehicle, addVehicle, deleteVehicle } = useMarchData();
+  // Get march data to find the marchId
+  const { data: marchesData } = useMarches();
+  const marchId = marchesData?.data?.[0]?.id;
+
+  // tRPC hooks for vehicles and days
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useVehicles(marchId);
+  const { data: daysData, isLoading: daysLoading } = useMarchDays(marchId || '');
+  const createVehicleMutation = useCreateVehicle();
+  const updateVehicleMutation = useUpdateVehicle();
+  const deleteVehicleMutation = useDeleteVehicle();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [editedVehicle, setEditedVehicle] = useState<Vehicle | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({});
 
+  const vehicles = vehiclesData?.data || [];
+  const days = daysData?.data || [];
+
   const handleEdit = (vehicle: Vehicle) => {
     setEditedVehicle({ ...vehicle });
     setEditingId(vehicle.id);
   };
 
-  const handleSave = () => {
-    if (editedVehicle) {
-      updateVehicle(editedVehicle.id, editedVehicle);
-      setEditingId(null);
-      setEditedVehicle(null);
+  const handleSave = async () => {
+    if (editedVehicle && marchId) {
+      try {
+        await updateVehicleMutation.mutateAsync({
+          id: editedVehicle.id,
+          data: editedVehicle
+        });
+        setEditingId(null);
+        setEditedVehicle(null);
+      } catch (error) {
+        console.error('Failed to update vehicle:', error);
+      }
     }
   };
 
@@ -29,42 +56,59 @@ const VehiclesPage: React.FC = () => {
     setEditedVehicle(null);
   };
 
-  const handleAdd = () => {
-    if (newVehicle.name && newVehicle.description && newVehicle.licensePlate && newVehicle.responsiblePerson) {
-      const vehicle: Vehicle = {
-        id: `vehicle-${Date.now()}`,
-        name: newVehicle.name,
-        description: newVehicle.description,
-        licensePlate: newVehicle.licensePlate,
-        responsiblePerson: newVehicle.responsiblePerson,
-        vehicleDays: newVehicle.vehicleDays || []
-      };
-      addVehicle(vehicle);
-      setIsAdding(false);
-      setNewVehicle({});
+  const handleAdd = async () => {
+    if (newVehicle.name && newVehicle.driver && marchId) {
+      try {
+        const vehicleData = {
+          name: newVehicle.name,
+          type: 'van' as const, // Default type
+          capacity: 8, // Default capacity
+          driver: newVehicle.driver,
+          driverPhone: '',
+          licensePlate: newVehicle.licensePlate || '',
+          notes: newVehicle.notes || ''
+        };
+
+        await createVehicleMutation.mutateAsync(vehicleData);
+        setIsAdding(false);
+        setNewVehicle({});
+      } catch (error) {
+        console.error('Failed to create vehicle:', error);
+      }
     }
   };
 
-  const handleDelete = (vehicleId: string) => {
+  const handleDelete = async (vehicleId: string) => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      deleteVehicle(vehicleId);
+      try {
+        await deleteVehicleMutation.mutateAsync({ id: vehicleId });
+      } catch (error) {
+        console.error('Failed to delete vehicle:', error);
+      }
     }
   };
 
-  const handleDayToggle = (vehicleId: string, dayId: string) => {
-    const vehicle = marchData.vehicles.find(v => v.id === vehicleId);
+  const handleDayToggle = async (vehicleId: string, dayId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
-    const currentDays = vehicle.vehicleDays || [];
-    const updatedDays = currentDays.includes(dayId)
-      ? currentDays.filter(id => id !== dayId)
-      : [...currentDays, dayId];
-
-    updateVehicle(vehicleId, {
-      ...vehicle,
-      vehicleDays: updatedDays
-    });
+    // Note: vehicleDays scheduling is not implemented in tRPC yet
+    // This would need to be implemented as a separate assignment system
+    console.log('Vehicle day scheduling not yet implemented in tRPC');
   };
+
+  if (vehiclesLoading || daysLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading vehicles...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -122,24 +166,23 @@ const VehiclesPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Responsible Person *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Driver *</label>
               <input
                 type="text"
-                value={newVehicle.responsiblePerson || ''}
-                onChange={(e) => setNewVehicle({ ...newVehicle, responsiblePerson: e.target.value })}
+                value={newVehicle.driver || ''}
+                onChange={(e) => setNewVehicle({ ...newVehicle, driver: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 required
-                placeholder="Name of person responsible for this vehicle"
+                placeholder="Name of person driving this vehicle"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
               <textarea
-                value={newVehicle.description || ''}
-                onChange={(e) => setNewVehicle({ ...newVehicle, description: e.target.value })}
+                value={newVehicle.notes || ''}
+                onChange={(e) => setNewVehicle({ ...newVehicle, notes: e.target.value })}
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
                 placeholder="Describe the vehicle's purpose, capacity, and any special features"
               />
             </div>
@@ -147,10 +190,15 @@ const VehiclesPage: React.FC = () => {
           <div className="flex space-x-4 mt-6">
             <button
               onClick={handleAdd}
-              className="btn-primary flex items-center space-x-2"
+              disabled={createVehicleMutation.isPending}
+              className="btn-primary flex items-center space-x-2 disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
-              <span>Add Vehicle</span>
+              {createVehicleMutation.isPending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{createVehicleMutation.isPending ? 'Adding...' : 'Add Vehicle'}</span>
             </button>
             <button
               onClick={() => {
@@ -168,7 +216,7 @@ const VehiclesPage: React.FC = () => {
 
       {/* Vehicles List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {marchData.vehicles.map((vehicle) => {
+        {vehicles.map((vehicle) => {
           const isEditing = editingId === vehicle.id;
           const isEditingSchedule = editingScheduleId === vehicle.id;
           const currentVehicle = isEditing ? editedVehicle! : vehicle;
@@ -194,9 +242,14 @@ const VehiclesPage: React.FC = () => {
                     <>
                       <button
                         onClick={handleSave}
-                        className="text-green-600 hover:text-green-800"
+                        disabled={updateVehicleMutation.isPending}
+                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
                       >
-                        <Save className="h-4 w-4" />
+                        {updateVehicleMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={handleCancel}
@@ -215,9 +268,14 @@ const VehiclesPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleDelete(vehicle.id)}
-                        className="text-red-600 hover:text-red-800"
+                        disabled={deleteVehicleMutation.isPending}
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deleteVehicleMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </>
                   )}
@@ -237,19 +295,19 @@ const VehiclesPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Responsible Person</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Driver</label>
                       <input
                         type="text"
-                        value={currentVehicle.responsiblePerson}
-                        onChange={(e) => setEditedVehicle({ ...currentVehicle, responsiblePerson: e.target.value })}
+                        value={currentVehicle.driver}
+                        onChange={(e) => setEditedVehicle({ ...currentVehicle, driver: e.target.value })}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                       <textarea
-                        value={currentVehicle.description}
-                        onChange={(e) => setEditedVehicle({ ...currentVehicle, description: e.target.value })}
+                        value={currentVehicle.notes || ''}
+                        onChange={(e) => setEditedVehicle({ ...currentVehicle, notes: e.target.value })}
                         rows={3}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                       />
@@ -261,84 +319,37 @@ const VehiclesPage: React.FC = () => {
                       <Hash className="h-4 w-4 mr-2" />
                       <span className="font-medium">{vehicle.licensePlate}</span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <User className="h-4 w-4 mr-2" />
-                      <span>{vehicle.responsiblePerson}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{vehicle.description}</p>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span>
-                        {vehicle.vehicleDays && vehicle.vehicleDays.length > 0
-                          ? `${vehicle.vehicleDays.length} day(s)`
-                          : 'No days assigned'}
-                      </span>
-                    </div>
+                                    <div className="flex items-center text-sm text-gray-600">
+                  <User className="h-4 w-4 mr-2" />
+                  <span>{vehicle.driver}</span>
+                </div>
+                <p className="text-sm text-gray-600">{vehicle.notes || 'No description'}</p>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Vehicle scheduling not yet implemented</span>
+                </div>
                   </>
                 )}
               </div>
 
-              {/* Vehicle Schedule Section */}
+              {/* Vehicle Schedule Section - Not implemented in tRPC yet */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-medium text-gray-900 flex items-center">
                     <Clock className="h-4 w-4 mr-1" />
                     Schedule
                   </h4>
-                  <button
-                    onClick={() => setEditingScheduleId(isEditingSchedule ? null : vehicle.id)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    {isEditingSchedule ? 'Done' : 'Edit Schedule'}
-                  </button>
                 </div>
-                
-                {isEditingSchedule ? (
-                  <div className="space-y-2">
-                    {marchData.days.map((day) => {
-                      const isScheduled = vehicle.vehicleDays?.includes(day.id) || false;
-                      return (
-                        <label key={day.id} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={isScheduled}
-                            onChange={() => handleDayToggle(vehicle.id, day.id)}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            Day {marchData.days.findIndex(d => d.id === day.id) + 1}: {day.route.startPoint} → {day.route.endPoint}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-600">
-                    {vehicle.vehicleDays && vehicle.vehicleDays.length > 0 ? (
-                      <div className="space-y-1">
-                        {vehicle.vehicleDays.map((dayId) => {
-                          const day = marchData.days.find(d => d.id === dayId);
-                          const dayNumber = marchData.days.findIndex(d => d.id === dayId) + 1;
-                          return day ? (
-                            <div key={dayId} className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              <span>Day {dayNumber}: {day.route.startPoint} → {day.route.endPoint}</span>
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500">No days scheduled</p>
-                    )}
-                  </div>
-                )}
+                <div className="text-sm text-gray-600">
+                  <p className="text-gray-500">Vehicle scheduling not yet implemented in tRPC</p>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {marchData.vehicles.length === 0 && (
+      {vehicles.length === 0 && (
         <div className="text-center py-12">
           <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No vehicles yet</h3>
