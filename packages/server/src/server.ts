@@ -7,9 +7,11 @@ import { appRouter } from './_apps';
 import { initializeSampleData } from './utils/initData';
 import { AuthService } from './services/authService';
 import { AuthContext } from './types/auth';
+import * as dotenv from 'dotenv';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+dotenv.config();
 
 // Authentication middleware
 const createAuthContext = async (opts: { req: express.Request; res: express.Response }): Promise<AuthContext> => {
@@ -201,6 +203,7 @@ app.listen(PORT, async () => {
   console.log(`🔧 Environment CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   console.log(`🔐 Authentication enabled - JWT tokens required for protected endpoints`);
   console.log(`👤 Default admin user: admin@marchplanner.com / admin123\n`);
+  console.log(`The connection URL is ${process.env.DATABASE_URL}`);
   
   // Initialize sample data
   await initializeSampleData();
