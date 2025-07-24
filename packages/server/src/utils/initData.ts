@@ -1,6 +1,9 @@
 import { dataService } from '../services/dataService';
+import { PrismaClient } from '../generated/prisma/client';
+
 
 export async function initializeSampleData() {
+  const prisma = new PrismaClient();
   console.log('🚀 Initializing sample data...');
 
   // Create a sample march
@@ -21,7 +24,7 @@ export async function initializeSampleData() {
     itineraryDescription: "Join us for an hour, a day, a week, or the whole way. Each day offers unique opportunities to connect with communities and make your voice heard.",
     mapSettings: {
       defaultZoom: 8,
-      mapCenter: { lat: 42.3601, lng: -71.0589 }
+      mapCenter: {lat: 42.3601, lng: -71.0589}
     }
   });
 
@@ -154,14 +157,14 @@ export async function initializeSampleData() {
           {
             id: "point-1",
             name: "Boston Common",
-            coordinates: { lat: 42.3554, lng: -71.0656 },
+            coordinates: {lat: 42.3554, lng: -71.0656},
             type: "start" as const,
             description: "Starting point of the march"
           },
           {
             id: "point-2",
             name: "Cambridge City Hall",
-            coordinates: { lat: 42.3736, lng: -71.1097 },
+            coordinates: {lat: 42.3736, lng: -71.1097},
             type: "end" as const,
             description: "End point for day 1"
           }
@@ -207,14 +210,14 @@ export async function initializeSampleData() {
           {
             id: "point-3",
             name: "Cambridge City Hall",
-            coordinates: { lat: 42.3736, lng: -71.1097 },
+            coordinates: {lat: 42.3736, lng: -71.1097},
             type: "start" as const,
             description: "Starting point for day 2"
           },
           {
             id: "point-4",
             name: "Waltham Town Center",
-            coordinates: { lat: 42.3765, lng: -71.2356 },
+            coordinates: {lat: 42.3765, lng: -71.2356},
             type: "end" as const,
             description: "End point for day 2"
           }
@@ -313,4 +316,17 @@ export async function initializeSampleData() {
 
   console.log('🎉 Sample data initialization complete!');
   console.log(`📊 Created: ${marcherIds.length} marchers, ${organizationIds.length} organizations, ${vehicleIds.length} vehicles, ${dayIds.length} march days`);
+  for (let i = 0; i < 5; i++) {
+    await prisma.participant.create({
+    data: {
+      name: `John the ${i}th`,
+      email: `test${i}@test.org`,
+      phone: '987654',
+      emergencyContact: '123456',
+    }
+  });
+  }
+
+  const participants = await prisma.participant.findMany();
+  console.log(participants);
 } 
